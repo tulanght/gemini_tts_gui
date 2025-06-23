@@ -1,0 +1,123 @@
+{
+    "gemini_voices": [
+      {"name": "Algieba (Default)", "id": "Algieba"},
+      {"name": "Aura TTS", "id": "aura-tts"},
+      {"name": "Ember TTS", "id": "ember-tts"},
+      {
+        "name": "Zephyr",
+        "id": "Zephyr"
+      },
+      {
+        "name": "Puck",
+        "id": "Puck"
+      },
+      {
+        "name": "Charon",
+        "id": "Charon"
+      },
+      {
+        "name": "Kore",
+        "id": "Kore"
+      },
+      {
+        "name": "Fenrir",
+        "id": "Fenrir"
+      },
+      {
+        "name": "Leda",
+        "id": "Leda"
+      },
+      {
+        "name": "Orus",
+        "id": "Orus"
+      },
+      {
+        "name": "Aoede",
+        "id": "Aoede"
+      },
+      {
+        "name": "Callirhoe",
+        "id": "Callirhoe"
+      },
+      {
+        "name": "Autonoe",
+        "id": "Autonoe"
+      },
+      {
+        "name": "Iapetus",
+        "id": "Iapetus"
+      },
+      {
+        "name": "Umbriel",
+        "id": "Umbriel"
+      },
+      {
+        "name": "Algieba",
+        "id": "Algieba"
+      },
+      {
+        "name": "Despina",
+        "id": "Despina"
+      },
+      {
+        "name": "Erinome",
+        "id": "Erinome"
+      },
+      {
+        "name": "Algenib",
+        "id": "Algenib"
+      },
+      {
+        "name": "Rasalgethi",
+        "id": "Rasalgethi"
+      },
+      {
+        "name": "Laomedeia",
+        "id": "Laomedeia"
+      },
+      {
+        "name": "Achernar",
+        "id": "Achernar"
+      },
+      {
+        "name": "Alnilam",
+        "id": "Alnilam"
+      },
+      {
+        "name": "Schedar",
+        "id": "Schedar"
+      },
+      {
+        "name": "Gacrux",
+        "id": "Gacrux"
+      },
+      {
+        "name": "Pulcherrima",
+        "id": "Pulcherrima"
+      },
+      {
+        "name": "Achird",
+        "id": "Achird"
+      },
+      {
+        "name": "Zubenelgenubi",
+        "id": "Zubenelgenubi"
+      },
+      {
+        "name": "Vindemiatrix",
+        "id": "Vindemiatrix"
+      },
+      {
+        "name": "Sadachbia",
+        "id": "Sadachbia"
+      },
+      {
+        "name": "Sadaltager",
+        "id": "Sadaltager"
+      },
+      {
+        "name": "Sulafar",
+        "id": "Sulafar"
+      }
+    ]
+  }
