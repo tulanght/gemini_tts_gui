@@ -114,6 +114,7 @@ class ThumbnailPreviewWindow(tk.Toplevel):
             self.preview_bg_path = file_path
             self._redraw_thumbnail_canvas()
     
+    # --- START REPLACEMENT FOR _redraw_thumbnail_canvas ---
     def _redraw_thumbnail_canvas(self, event=None):
         if not self.winfo_exists(): return
         canvas = self.preview_canvas
@@ -138,20 +139,22 @@ class ThumbnailPreviewWindow(tk.Toplevel):
         if not font_path:
             canvas.create_text(10, 10, text=f"Lỗi: Không tìm thấy file font cho '{font_name}'.", fill="red", anchor=tk.NW); return
 
-        # --- LOGIC TỰ ĐỘNG FIT TEXT VÀO KHUNG ---
         current_font_size = self.selected_font_size.get()
-        padding = 20 # Khoảng đệm trên dưới
+        padding = 20
         
+        # Tạo một đối tượng Draw tạm thời để tính toán
+        temp_draw = ImageDraw.Draw(Image.new("RGB", (1,1)))
+
         while current_font_size > 10:
             test_font = ImageFont.truetype(font_path, current_font_size)
-            text_box = test_font.getbbox(self.text_content, anchor='mm', align='center')
+            # SỬA LỖI: Dùng đúng hàm multiline_textbbox từ đối tượng Draw
+            text_box = temp_draw.multiline_textbbox((0,0), self.text_content, font=test_font, align='center')
             text_height = text_box[3] - text_box[1]
 
             if text_height <= (self.canvas_height - padding):
-                break # Cỡ chữ này phù hợp
-            current_font_size -= 2 # Giảm cỡ chữ và thử lại
+                break
+            current_font_size -= 2
         
-        final_font = ImageFont.truetype(font_path, current_font_size)
         font_tuple_for_canvas = (font_name, current_font_size, "bold")
         
         x = self.canvas_width / 2
@@ -160,12 +163,14 @@ class ThumbnailPreviewWindow(tk.Toplevel):
         outline_color = "black"
         offset = max(2, int(current_font_size / 30))
         
-        canvas.create_text(x, y, text=self.text_content, font=font_tuple_for_canvas, fill=outline_color, justify=tk.CENTER, anchor='mm', align='center')
-        canvas.create_text(x, y, text=self.text_content, font=font_tuple_for_canvas, fill="white", justify=tk.CENTER, anchor='mm', align='center')
+        # Dùng anchor='mm' (middle-middle) để căn giữa chính xác
+        canvas.create_text(x, y, text=self.text_content, font=font_tuple_for_canvas, fill=outline_color, justify=tk.CENTER, anchor='mm', width=self.canvas_width * 0.95)
+        canvas.create_text(x, y, text=self.text_content, font=font_tuple_for_canvas, fill="white", justify=tk.CENTER, anchor='mm', width=self.canvas_width * 0.95)
+    # --- END REPLACEMENT FOR _redraw_thumbnail_canvas ---
     
+    # --- START REPLACEMENT FOR _export_thumbnail ---
     def _export_thumbnail(self):
         try:
-            # ... (Nội dung hàm export giữ nguyên, nhưng sẽ được lợi từ logic fit-text khi vẽ lại)
             if self.preview_bg_path: bg_image = Image.open(self.preview_bg_path).convert("RGBA")
             else: bg_image = Image.new('RGBA', (1280, 720), (80, 80, 80, 255))
             bg_image = ImageOps.fit(bg_image, (1280, 720), Image.Resampling.LANCZOS)
@@ -181,32 +186,29 @@ class ThumbnailPreviewWindow(tk.Toplevel):
             if not font_path:
                 messagebox.showerror("Lỗi Font", "Không tìm thấy font phù hợp để xuất ảnh.", parent=self); return
             
-            # Logic fit-text tương tự cho file export
             current_font_size = self.selected_font_size.get()
-            padding = 40 # Padding lớn hơn cho file export
+            padding = 40
             while current_font_size > 10:
                 test_font = ImageFont.truetype(font_path, current_font_size)
-                # Dùng align='center' và anchor='mm' (middle-middle) để tính toán chính xác hơn
-                text_box = test_font.getbbox(self.text_content, anchor='mm', align='center')
+                # SỬA LỖI: Dùng đúng hàm multiline_textbbox từ đối tượng Draw
+                text_box = draw.multiline_textbbox((0,0), self.text_content, font=test_font, align='center')
                 text_height = text_box[3] - text_box[1]
-                if text_height <= (1080 - padding): break
+                if text_height <= (720 - padding): break # So sánh với chiều cao ảnh export
                 current_font_size -= 2
 
             font = ImageFont.truetype(font_path, current_font_size)
 
-            # Vẽ vào chính giữa ảnh
-            x, y = 1280 / 2, 1080 / 2
+            x, y = 1280 / 2, 720 / 2
             
             outline_color = "black"
             main_color = "white"
-            offset = max(4, int(current_font_size / 30))
+            stroke_width = max(4, int(current_font_size / 30))
 
-            draw.text((x, y), self.text_content, font=font, fill=outline_color, anchor='mm', align='center', stroke_width=offset)
-            draw.text((x, y), self.text_content, font=font, fill=main_color, anchor='mm', align='center')
+            # Dùng stroke_width để tạo viền tốt hơn
+            draw.text((x, y), self.text_content, font=font, fill=main_color, anchor='mm', align='center', stroke_width=stroke_width, stroke_fill=outline_color)
 
             file_path = filedialog.asksaveasfilename(parent=self, title="Xuất ảnh Thumbnail", defaultextension=".png", filetypes=[("PNG Image", "*.png")])
             if file_path:
-                # Xuất ra ảnh 1920x1080 để có chất lượng tốt nhất
                 final_image = bg_image.resize((1920, 1080), Image.Resampling.LANCZOS)
                 final_image.convert("RGB").save(file_path, quality=95)
                 messagebox.showinfo("Thành công", f"Đã xuất ảnh thumbnail (1920x1080) thành công tại:\n{file_path}", parent=self)
@@ -214,3 +216,4 @@ class ThumbnailPreviewWindow(tk.Toplevel):
 
         except Exception as e:
             messagebox.showerror("Lỗi xuất ảnh", f"Đã có lỗi xảy ra: {e}", parent=self)
+    # --- END REPLACEMENT FOR _export_thumbnail ---
