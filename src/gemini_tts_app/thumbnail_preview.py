@@ -1,5 +1,5 @@
 # src/gemini_tts_app/thumbnail_preview.py
-# v1.3 - 2025-06-24: Implement fixed-size window and fit-to-frame text logic.
+# v1.4 - 2025-06-24: Implement robust text wrapping and fitting logic.
 # Module độc lập để quản lý cửa sổ xem trước Thumbnail
 
 import tkinter as tk
@@ -7,46 +7,42 @@ from tkinter import ttk, filedialog, messagebox
 from PIL import Image, ImageTk, ImageDraw, ImageFont, ImageOps
 from matplotlib import font_manager
 import logging
+import textwrap # Import thư viện cần thiết
 
 class ThumbnailPreviewWindow(tk.Toplevel):
-    """
-    Một cửa sổ Toplevel tự quản lý để hiển thị, tùy chỉnh và xuất ảnh thumbnail.
-    Cửa sổ này có kích thước cố định để đảm bảo tính nhất quán của preview.
-    """
     def __init__(self, parent, text_content, log_callback):
         super().__init__(parent)
         self.parent = parent
         self.text_content = text_content
         self.log_callback = log_callback
 
-        # --- Định nghĩa kích thước cố định cho vùng vẽ ---
         self.canvas_width = 854
-        self.canvas_height = int(self.canvas_width * 9 / 16) # ~480
+        self.canvas_height = int(self.canvas_width * 9 / 16)
 
         self.title("Xem trước Thumbnail")
-        # Không đặt geometry cố định, để Tkinter tự tính toán chiều cao tổng thể
-
-        # --- Biến điều khiển giao diện ---
+        
         self.system_fonts = self._get_system_fonts()
         self.selected_font_family = tk.StringVar()
-        self.selected_font_size = tk.IntVar(value=90) # Cỡ chữ cơ sở cho file export
+        self.selected_font_size = tk.IntVar(value=110) # Tăng cỡ chữ cơ sở
 
         self.preview_bg_photo = None
         self.preview_bg_path = None
         self.preview_overlay_alpha = tk.IntVar(value=100)
 
         self._setup_widgets()
-        
-        # Sau khi các widget đã được tạo, ta có thể ngăn không cho resize
         self.resizable(False, False)
         
-        # Vẽ canvas lần đầu
         self.update_idletasks() 
         self._redraw_thumbnail_canvas()
 
         self.transient(parent)
         self.grab_set()
         self.wait_window(self)
+
+    # --- Các hàm get_system_fonts, find_font_path, _setup_widgets, _select_background_image giữ nguyên ---
+    # ... (Giữ nguyên các hàm không thay đổi để tránh làm dài phản hồi)
+    # >>> BẠN SẼ DÁN CODE CỦA CÁC HÀM NÀY TỪ PHIÊN BẢN TRƯỚC VÀO ĐÂY <<<
+    # HOẶC TỐT HƠN, CHỈ THAY THẾ CÁC HÀM BÊN DƯỚI
 
     def _get_system_fonts(self):
         """Lấy danh sách các họ font (font family) có trên hệ thống."""
@@ -57,7 +53,7 @@ class ThumbnailPreviewWindow(tk.Toplevel):
             return font_names
         except Exception as e:
             self.log_callback(f"Lỗi khi quét font hệ thống: {e}")
-            return ['Arial', 'Times New Roman']
+            return ['Arial', 'Times New Roman'] # Fallback
 
     def _find_font_path(self, font_name):
         """Tìm đường dẫn file của một họ font cụ thể."""
@@ -100,10 +96,9 @@ class ThumbnailPreviewWindow(tk.Toplevel):
         ttk.Label(row3, text="Độ mờ lớp phủ:").pack(side=tk.LEFT, padx=(0, 5))
         ttk.Scale(row3, from_=0, to=255, variable=self.preview_overlay_alpha, command=self._redraw_thumbnail_canvas).pack(fill=tk.X, expand=True)
 
-        # Thiết lập Vùng vẽ Thumbnail với kích thước 16:9 cố định
         canvas_container = ttk.Frame(self, width=self.canvas_width, height=self.canvas_height)
         canvas_container.pack(side=tk.BOTTOM, expand=True, fill="both")
-        canvas_container.pack_propagate(False) # Ngăn container co lại theo canvas
+        canvas_container.pack_propagate(False)
         
         self.preview_canvas = tk.Canvas(canvas_container, bg="#1c1c1c", highlightthickness=0, width=self.canvas_width, height=self.canvas_height)
         self.preview_canvas.pack()
@@ -113,13 +108,26 @@ class ThumbnailPreviewWindow(tk.Toplevel):
         if file_path:
             self.preview_bg_path = file_path
             self._redraw_thumbnail_canvas()
-    
-    # --- START REPLACEMENT FOR _redraw_thumbnail_canvas ---
+
+    # --- START REPLACEMENT ---
+    def _wrap_text_and_get_size(self, text, font, max_width_chars):
+        """Hàm mới: Chủ động ngắt dòng text và trả về text đã ngắt dòng cùng chiều cao của nó."""
+        # Ngắt dòng dựa trên số ký tự ước tính
+        wrapped_lines = textwrap.wrap(text, width=max_width_chars)
+        wrapped_text = '\n'.join(wrapped_lines)
+        
+        # Tính toán bounding box dựa trên text đã được ngắt dòng chuẩn
+        bbox = font.getbbox(wrapped_text)
+        text_height = bbox[3] - bbox[1]
+        
+        return wrapped_text, text_height
+
     def _redraw_thumbnail_canvas(self, event=None):
         if not self.winfo_exists(): return
         canvas = self.preview_canvas
         canvas.delete("all")
         
+        # ... (Phần vẽ background giữ nguyên) ...
         try:
             if self.preview_bg_path: bg_image = Image.open(self.preview_bg_path).convert("RGBA")
             else: bg_image = Image.new('RGBA', (1280, 720), (80, 80, 80, 255))
@@ -139,71 +147,76 @@ class ThumbnailPreviewWindow(tk.Toplevel):
         if not font_path:
             canvas.create_text(10, 10, text=f"Lỗi: Không tìm thấy file font cho '{font_name}'.", fill="red", anchor=tk.NW); return
 
+        # --- LOGIC FIT TEXT MỚI, ROBUST HƠN ---
         current_font_size = self.selected_font_size.get()
-        padding = 20
+        padding = 40 # Tăng padding cho đẹp
         
-        temp_draw = ImageDraw.Draw(Image.new("RGB", (1,1)))
-
         while current_font_size > 10:
             test_font = ImageFont.truetype(font_path, current_font_size)
-            text_box = temp_draw.multiline_textbbox((0,0), self.text_content, font=test_font, align='center')
-            text_height = text_box[3] - text_box[1]
+            
+            # Ước tính số ký tự tối đa trên một dòng
+            avg_char_width = test_font.getlength('a') 
+            max_chars_per_line = int((self.canvas_width * 0.95) / avg_char_width)
+
+            # Lấy text đã được ngắt dòng và chiều cao chính xác của nó
+            _wrapped_text, text_height = self._wrap_text_and_get_size(self.text_content, test_font, max_chars_per_line)
 
             if text_height <= (self.canvas_height - padding):
-                break
+                break 
             current_font_size -= 2
         
-        font_tuple_for_canvas = (font_name, current_font_size, "bold")
+        final_font_tuple = (font_name, current_font_size, "bold")
+        final_wrapped_text = _wrapped_text
         
         x = self.canvas_width / 2
         y = self.canvas_height / 2
-
+        
         outline_color = "black"
         
-        # SỬA LỖI: Dùng đúng anchor='center' của Tkinter
-        canvas.create_text(x, y, text=self.text_content, font=font_tuple_for_canvas, fill=outline_color, justify=tk.CENTER, anchor=tk.CENTER, width=self.canvas_width * 0.95)
-        canvas.create_text(x, y, text=self.text_content, font=font_tuple_for_canvas, fill="white", justify=tk.CENTER, anchor=tk.CENTER, width=self.canvas_width * 0.95)
-    # --- END REPLACEMENT FOR _redraw_thumbnail_canvas ---
-    
-    # --- START REPLACEMENT FOR _export_thumbnail ---
+        canvas.create_text(x, y, text=final_wrapped_text, font=final_font_tuple, fill=outline_color, justify=tk.CENTER, anchor=tk.CENTER)
+        canvas.create_text(x, y, text=final_wrapped_text, font=final_font_tuple, fill="white", justify=tk.CENTER, anchor=tk.CENTER)
+
     def _export_thumbnail(self):
         try:
+            # ... (Phần vẽ background giữ nguyên) ...
             if self.preview_bg_path: bg_image = Image.open(self.preview_bg_path).convert("RGBA")
             else: bg_image = Image.new('RGBA', (1280, 720), (80, 80, 80, 255))
             bg_image = ImageOps.fit(bg_image, (1280, 720), Image.Resampling.LANCZOS)
-
             alpha = self.preview_overlay_alpha.get()
             if alpha > 0:
                 overlay = Image.new('RGBA', bg_image.size, (0, 0, 0, alpha))
                 bg_image = Image.alpha_composite(bg_image, overlay)
-
             draw = ImageDraw.Draw(bg_image)
+            
             font_name = self.selected_font_family.get()
             font_path = self._find_font_path(font_name)
             if not font_path:
-                messagebox.showerror("Lỗi Font", "Không tìm thấy font phù hợp để xuất ảnh.", parent=self); return
+                messagebox.showerror("Lỗi Font", "Không tìm thấy font phù hợp.", parent=self); return
             
+            # Logic fit-text tương tự cho file export
             current_font_size = self.selected_font_size.get()
-            padding = 40
+            padding = 60
             while current_font_size > 10:
                 test_font = ImageFont.truetype(font_path, current_font_size)
-                # SỬA LỖI: Dùng đúng hàm multiline_textbbox từ đối tượng Draw
-                text_box = draw.multiline_textbbox((0,0), self.text_content, font=test_font, align='center')
-                text_height = text_box[3] - text_box[1]
-                if text_height <= (720 - padding): break # So sánh với chiều cao ảnh export
+                avg_char_width = test_font.getlength('a')
+                # Chiều rộng của ảnh export là 1280
+                max_chars_per_line = int((1280 * 0.95) / avg_char_width) 
+                
+                wrapped_text, text_height = self._wrap_text_and_get_size(self.text_content, test_font, max_chars_per_line)
+                
+                if text_height <= (720 - padding): break
                 current_font_size -= 2
 
             font = ImageFont.truetype(font_path, current_font_size)
-
-            x, y = 1280 / 2, 720 / 2
             
+            x, y = 1280 / 2, 720 / 2
             outline_color = "black"
             main_color = "white"
             stroke_width = max(4, int(current_font_size / 30))
 
-            # Dùng stroke_width để tạo viền tốt hơn
-            draw.text((x, y), self.text_content, font=font, fill=main_color, anchor='mm', align='center', stroke_width=stroke_width, stroke_fill=outline_color)
+            draw.text((x, y), wrapped_text, font=font, fill=main_color, anchor='mm', align='center', stroke_width=stroke_width, stroke_fill=outline_color)
 
+            # ... (Phần lưu file giữ nguyên) ...
             file_path = filedialog.asksaveasfilename(parent=self, title="Xuất ảnh Thumbnail", defaultextension=".png", filetypes=[("PNG Image", "*.png")])
             if file_path:
                 final_image = bg_image.resize((1920, 1080), Image.Resampling.LANCZOS)
@@ -213,4 +226,4 @@ class ThumbnailPreviewWindow(tk.Toplevel):
 
         except Exception as e:
             messagebox.showerror("Lỗi xuất ảnh", f"Đã có lỗi xảy ra: {e}", parent=self)
-    # --- END REPLACEMENT FOR _export_thumbnail ---
+    # --- END REPLACEMENT ---
