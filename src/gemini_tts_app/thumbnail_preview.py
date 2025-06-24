@@ -142,12 +142,10 @@ class ThumbnailPreviewWindow(tk.Toplevel):
         current_font_size = self.selected_font_size.get()
         padding = 20
         
-        # Tạo một đối tượng Draw tạm thời để tính toán
         temp_draw = ImageDraw.Draw(Image.new("RGB", (1,1)))
 
         while current_font_size > 10:
             test_font = ImageFont.truetype(font_path, current_font_size)
-            # SỬA LỖI: Dùng đúng hàm multiline_textbbox từ đối tượng Draw
             text_box = temp_draw.multiline_textbbox((0,0), self.text_content, font=test_font, align='center')
             text_height = text_box[3] - text_box[1]
 
@@ -161,11 +159,10 @@ class ThumbnailPreviewWindow(tk.Toplevel):
         y = self.canvas_height / 2
 
         outline_color = "black"
-        offset = max(2, int(current_font_size / 30))
         
-        # Dùng anchor='mm' (middle-middle) để căn giữa chính xác
-        canvas.create_text(x, y, text=self.text_content, font=font_tuple_for_canvas, fill=outline_color, justify=tk.CENTER, anchor='mm', width=self.canvas_width * 0.95)
-        canvas.create_text(x, y, text=self.text_content, font=font_tuple_for_canvas, fill="white", justify=tk.CENTER, anchor='mm', width=self.canvas_width * 0.95)
+        # SỬA LỖI: Dùng đúng anchor='center' của Tkinter
+        canvas.create_text(x, y, text=self.text_content, font=font_tuple_for_canvas, fill=outline_color, justify=tk.CENTER, anchor=tk.CENTER, width=self.canvas_width * 0.95)
+        canvas.create_text(x, y, text=self.text_content, font=font_tuple_for_canvas, fill="white", justify=tk.CENTER, anchor=tk.CENTER, width=self.canvas_width * 0.95)
     # --- END REPLACEMENT FOR _redraw_thumbnail_canvas ---
     
     # --- START REPLACEMENT FOR _export_thumbnail ---
