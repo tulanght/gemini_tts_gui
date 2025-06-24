@@ -1,5 +1,5 @@
-# src/gemini_tts_app/main_app.py
-# Phiên bản: main_app_v18_advanced_preview <-- thực ra đây không phải là phiên bản 18 vì đã lâu bạn không còn ghi phiên bản. trước đó lâu hơn thì bạn đã ghi phiên bản thứ 21...
+# main_app.py - show_thumbnail_preview
+# v2.0 - 2025-06-24: Refactored to use ThumbnailPreviewWindow class
 import tkinter as tk
 from tkinter import ttk, scrolledtext, filedialog, messagebox
 import threading
@@ -22,8 +22,7 @@ try:
     import pyperclip
 except ImportError:
     pyperclip = None
-# --- HOTFIX [2025-06-23]: Thêm import cho tính năng preview. Thêm các dòng này. ---
-from PIL import Image, ImageTk, ImageDraw, ImageFont, ImageOps  
+from .thumbnail_preview import ThumbnailPreviewWindow
 from .tts_logic import generate_tts_audio_multithreaded
 from .settings_manager import save_settings, load_settings, NUM_API_KEYS
 from .constants import (
@@ -90,16 +89,7 @@ class TTSApp:
         self.clipboard_monitoring_thread = None
         self.is_monitoring_clipboard = False
         self.last_clipboard_content = ""
-        # Biến cho cửa sổ preview
-        self.preview_window = None 
-        self.preview_canvas = None
-        self.preview_bg_photo = None # Phải lưu tham chiếu đến ảnh
-        self.preview_bg_path = None
-        # Biến cho các tùy chỉnh preview
-        self.preview_font_size = tk.IntVar(value=60)
-        self.preview_font_color = tk.StringVar(value="white")
-        self.preview_outline_color = tk.StringVar(value="black")
-        self.preview_overlay_alpha = tk.IntVar(value=100) # 0-255
+      
         self._set_window_icon()
         self.notebook = ttk.Notebook(root)
         
@@ -657,171 +647,20 @@ class TTSApp:
         self.save_button.config(state=button_state)
 
     def show_thumbnail_preview(self):
-        if self.preview_window and self.preview_window.winfo_exists():
-            self.preview_window.lift()
-            return
-        
+        """Mở cửa sổ xem trước thumbnail trong một module riêng."""
         text_content = self.editor_text.get("1.0", tk.END).strip()
         if not text_content:
             messagebox.showwarning("Nội dung trống", "Không có nội dung để xem trước.", parent=self.assistant_tab)
             return
 
-        self.preview_window = tk.Toplevel(self.root)
-        self.preview_window.title("Xem trước Thumbnail")
-        self.preview_window.geometry("854x580") # Chiều cao tăng để chứa thanh điều khiển
-        self.preview_window.minsize(427, 320)
-
-        # --- KHUNG ĐIỀU KHIỂN ---
-        control_frame = ttk.Frame(self.preview_window, padding=10)
-        control_frame.pack(side=tk.TOP, fill=tk.X)
+        # Khởi tạo cửa sổ từ class riêng, truyền các đối tượng cần thiết.
+        # Cửa sổ này sẽ tự quản lý vòng đời của nó.
+        ThumbnailPreviewWindow(
+            parent=self.root, 
+            text_content=text_content, 
+            log_callback=self.log_message
+        )
         
-        ttk.Button(control_frame, text="Chọn ảnh nền...", command=self._select_background_image).pack(side=tk.LEFT, padx=5)
-        
-        ttk.Label(control_frame, text="Độ mờ lớp phủ:").pack(side=tk.LEFT, padx=5)
-        ttk.Scale(control_frame, from_=0, to=255, variable=self.preview_overlay_alpha, command=lambda e: self._redraw_thumbnail_canvas()).pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)
-        
-        ttk.Button(control_frame, text="Xuất ảnh PNG...", command=self._export_thumbnail, style="Accent.TButton").pack(side=tk.RIGHT, padx=5)
-
-        # --- CANVAS XEM TRƯỚC ---
-        canvas_container = ttk.Frame(self.preview_window)
-        canvas_container.pack(expand=True, fill="both")
-        self.preview_canvas = tk.Canvas(canvas_container, bg="#1c1c1c", highlightthickness=0)
-        self.preview_canvas.pack(expand=True, fill="both")
-
-        self.preview_window.bind("<Configure>", self._on_preview_resize)
-        self.preview_window.update_idletasks()
-        self._redraw_thumbnail_canvas()
-
-        self.preview_window.transient(self.root)
-        self.preview_window.grab_set()
-        self.root.wait_window(self.preview_window)
-        
-    def _on_preview_resize(self, event=None):
-        # Đợi một chút để window ổn định kích thước rồi mới vẽ lại
-        if hasattr(self, '_resize_job'):
-            self.preview_window.after_cancel(self._resize_job)
-        self._resize_job = self.preview_window.after(300, self._redraw_thumbnail_canvas)
-
-        
-    def _select_background_image(self):
-        file_path = filedialog.askopenfilename(title="Chọn ảnh nền", filetypes=[("Image Files", "*.jpg *.jpeg *.png")])
-        if file_path:
-            self.preview_bg_path = file_path
-            self._redraw_thumbnail_canvas()
-    
-    def _redraw_thumbnail_canvas(self):
-        if not (self.preview_window and self.preview_window.winfo_exists()): return
-        canvas = self.preview_canvas
-        canvas.delete("all")
-        
-        canvas_width = canvas.winfo_width()
-        canvas_height = canvas.winfo_height()
-        if canvas_width < 10 or canvas_height < 10: return
-
-        # 1. Tạo ảnh nền
-        try:
-            if self.preview_bg_path:
-                bg_image = Image.open(self.preview_bg_path).convert("RGBA")
-            else: # Tạo background mặc định nếu không có ảnh
-                bg_image = Image.new('RGBA', (1280, 720), (80, 80, 80, 255))
-        except Exception as e:
-            canvas.create_text(10, 10, text=f"Lỗi ảnh: {e}", fill="red", anchor=tk.NW)
-            return
-
-        # 2. Resize và crop ảnh nền để vừa khít canvas 16:9
-        bg_image = ImageOps.fit(bg_image, (canvas_width, canvas_height), Image.Resampling.LANCZOS)
-        
-        # 3. Thêm lớp phủ tối
-        alpha = self.preview_overlay_alpha.get()
-        if alpha > 0:
-            overlay = Image.new('RGBA', bg_image.size, (0, 0, 0, alpha))
-            bg_image = Image.alpha_composite(bg_image, overlay)
-        
-        self.preview_bg_photo = ImageTk.PhotoImage(bg_image)
-        canvas.create_image(0, 0, anchor=tk.NW, image=self.preview_bg_photo)
-
-        # 4. Vẽ Text
-        text_content = self.editor_text.get("1.0", tk.END).strip()
-        font_size = int(canvas_width / 16) # Cỡ chữ co giãn
-        try:
-            font_tuple = ("Impact", font_size, "normal")
-            # Dùng Pillow để tính toán kích thước text chính xác
-            pillow_font = ImageFont.truetype("impact.ttf", font_size)
-        except IOError:
-            font_tuple = ("Arial Black", font_size, "bold")
-            pillow_font = ImageFont.truetype("arialbd.ttf", font_size)
-
-        temp_draw = ImageDraw.Draw(Image.new("RGB", (1,1)))
-        # Sử dụng textbbox để lấy kích thước chính xác của khối text nhiều dòng
-        text_box = temp_draw.multiline_textbbox((0,0), text_content, font=pillow_font, align="center")
-        text_width = text_box[2] - text_box[0]
-        text_height = text_box[3] - text_box[1]
-
-        # Căn giữa toàn bộ khối text
-        x = canvas_width / 2
-        y = (canvas_height - text_height) / 2
-
-        outline_color = "black"
-        offset = max(2, int(font_size / 25)) # Viền dày hơn một chút
-        
-        # Vẽ viền
-        canvas.create_text(x, y, text=text_content, font=font_tuple, fill=outline_color, justify=tk.CENTER, anchor=tk.N, width=canvas_width * 0.9)
-        # Vẽ text chính
-        canvas.create_text(x, y, text=text_content, font=font_tuple, fill="white", justify=tk.CENTER, anchor=tk.N, width=canvas_width * 0.9)
-    
-    def _export_thumbnail(self):
-        try:
-            bg_image = None
-            # 1. Tạo lại ảnh nền và lớp phủ bằng Pillow
-            if self.preview_bg_path:
-                bg_image = Image.open(self.preview_bg_path).convert("RGBA")
-            else:
-                bg_image = Image.new('RGBA', (1280, 720), (80, 80, 80, 255))
-
-            bg_image = ImageOps.fit(bg_image, (1280, 720), Image.Resampling.LANCZOS)
-            alpha = self.preview_overlay_alpha.get()
-            if alpha > 0:
-                overlay = Image.new('RGBA', bg_image.size, (0, 0, 0, alpha))
-                bg_image = Image.alpha_composite(bg_image, overlay)
-
-            # 2. Chuẩn bị để vẽ text
-            draw = ImageDraw.Draw(bg_image)
-            text_content = self.editor_text.get("1.0", tk.END).strip()
-            font_size = int(1280 / 16) # Cỡ chữ cho file export chất lượng cao
-            try:
-                font = ImageFont.truetype("impact.ttf", font_size)
-            except IOError:
-                font = ImageFont.truetype("arialbd.ttf", font_size)
-
-            # 3. Tính toán vị trí và vẽ
-            text_bbox = draw.multiline_textbbox((0,0), text_content, font=font, align="center")
-            text_width = text_bbox[2] - text_bbox[0]
-            text_height = text_bbox[3] - text_bbox[1]
-            x = (1280 - text_width) / 2
-            y = (720 - text_height) / 2
-            
-            outline_color = "black"
-            main_color = "white"
-            offset = max(3, int(font_size / 25))
-
-            # Vẽ viền
-            for dx in range(-offset, offset+1, offset):
-                for dy in range(-offset, offset+1, offset):
-                    if dx != 0 or dy != 0:
-                        draw.multiline_text((x+dx, y+dy), text_content, font=font, fill=outline_color, align="center")
-            # Vẽ text chính
-            draw.multiline_text((x, y), text_content, font=font, fill=main_color, align="center")
-
-            # 4. Mở dialog và lưu file
-            file_path = filedialog.asksaveasfilename(title="Xuất ảnh Thumbnail", defaultextension=".png", filetypes=[("PNG Image", "*.png"), ("JPEG Image", "*.jpg")])
-            if file_path:
-                bg_image.convert("RGB").save(file_path, quality=95)
-                messagebox.showinfo("Thành công", f"Đã xuất ảnh thumbnail thành công tại:\n{file_path}", parent=self.preview_window)
-                self.log_message(f"Đã xuất thumbnail: {file_path}")
-
-        except Exception as e:
-            messagebox.showerror("Lỗi xuất ảnh", f"Đã có lỗi xảy ra: {e}", parent=self.preview_window)
-                
     # --- Các hàm của các tab khác (giữ nguyên, không tóm tắt) ---
     def _set_window_icon(self):
         try:
