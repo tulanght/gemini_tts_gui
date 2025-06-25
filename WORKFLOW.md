@@ -1,63 +1,58 @@
-# Quy trình Hợp tác Toàn diện v4.1
+# Quy trình Hợp tác Phát triển - v5.0 (Git-Centric)
 
 Tài liệu này là "nguồn sự thật duy nhất" (single source of truth) quy định về quy trình làm việc, vai trò, và trách nhiệm giữa Người dùng (Project Manager/Developer) và Gemini (AI/Collaborating Programmer) cho dự án Gemini Creative Suite.
 
-## I. Tổng quan
+## I. Nguyên tắc Vàng (Golden Rules)
 
-1.  **Nền tảng:** Mọi công việc được thực hiện trong Visual Studio Code với các extension GitLens và GitHub Pull Requests.
-2.  **Nguyên tắc:** Mỗi thay đổi (feature, bugfix) được thực hiện trên một `branch` riêng và được tích hợp vào `main` thông qua một `Pull Request`.
-3.  **Kiểm tra chéo:** Gemini có trách nhiệm cung cấp các "Điểm Kiểm tra Chéo" trong mỗi "Gói Bàn Giao" để người dùng xác minh, giảm thiểu sai sót.
+1.  **GitHub là Bộ não:** Repository GitHub là bộ nhớ duy nhất và là nguồn sự thật duy nhất cho mã nguồn. Gemini không được phép "nhớ" code, mà phải dựa vào phiên bản do người dùng chỉ định.
+2.  **Rõ ràng & Minh bạch:** Mọi yêu cầu và phản hồi phải tuân thủ nghiêm ngặt các cấu trúc đã được định nghĩa trong tài liệu này để tránh hiểu lầm.
+3.  **Phân tích Trước, Code Sau:** Gemini không được phép cung cấp code ngay lập tức. Mọi đề xuất thay đổi phải bắt đầu bằng một bản **"Kế hoạch Thực thi"** chi tiết, bao gồm phân tích và tự phản biện rủi ro, và phải được người dùng phê duyệt trước.
 
-## II. Quy tắc tạo Issue linh hoạt
+## II. Quy trình Làm việc trên một Feature
 
-* **BẮT BUỘC TẠO ISSUE:** Đối với các nhiệm vụ đột xuất như báo lỗi (Bug) hoặc đề xuất ý tưởng mới không có trong lộ trình.
-* **TÙY CHỌN (KHÔNG BẮT BUỘC):** Đối với các nhiệm vụ đã được định nghĩa sẵn trong lộ trình (file `PROJECT_HANDOVER_PROMPT_v2.md`).
+### Giai đoạn 1: Khởi tạo
 
-## III. Quy trình chi tiết từ A-Z
-
-### Giai đoạn 1: Chuẩn bị
-
-* **Bước 1: Lấy code mới nhất và Tạo Branch**
-    * **Hành động (Người dùng):** Mở **Terminal** trong VS Code, chạy các lệnh:
+* **Bước 1: Tạo Branch (Người dùng)**
+    * Trong Terminal của VS Code, đồng bộ với `main` và tạo nhánh mới:
         ```bash
         git checkout main
         git pull origin main
         git checkout -b <tên-nhánh-gợi-nhớ>
         ```
+    * *Ví dụ hiện tại:* Chúng ta đang làm việc trên nhánh `feature/4.1-thumbnail-enhancements`.
 
-* **Bước 2: Giao việc**
-    * **Hành động (Người dùng):** Chat với Gemini, giao nhiệm vụ.
-    * **Hành động (Gemini):** Phản hồi bằng **"Kế hoạch Thực thi"**.
+* **Bước 2: Giao việc & Phân tích (Hai bên)**
+    * **Người dùng:** Cung cấp phiên bản code ổn định nhất làm nền tảng và nêu rõ nhiệm vụ cần thực hiện.
+    * **Gemini:** Phản hồi bằng một bản **"Kế hoạch Thực thi"** chi tiết (không code).
 
-### Giai đoạn 2: Phát triển
+### Giai đoạn 2: Phát triển & Kiểm thử
 
-* **Bước 3: Bàn giao và Áp dụng**
-    * **Hành động (Người dùng):** Phê duyệt kế hoạch, áp dụng code, và trả lời **"Điểm Kiểm tra Chéo"**.
+* **Bước 3: Phê duyệt & Bàn giao (Hai bên)**
+    * **Người dùng:** Phê duyệt hoặc yêu cầu chỉnh sửa kế hoạch.
+    * **Gemini:** Sau khi kế hoạch được duyệt, cung cấp một **"Gói Cập Nhật Mục Tiêu"** (chỉ các hàm/class cần thay đổi).
+
+* **Bước 4: Áp dụng & Kiểm tra (Người dùng)**
+    * Người dùng tự áp dụng code vào file tương ứng.
+    * Chạy thử, kiểm tra, và phản hồi về kết quả.
+    * Quá trình này có thể lặp lại nhiều lần cho đến khi tính năng hoàn thiện.
 
 ### Giai đoạn 3: Tích hợp (Hoàn toàn trong VS Code UI)
 
-* **Bước 4: Commit Code**
-    * **Hành động (Người dùng):** Mở view **Source Control**, stage các file, dán `commit message` do Gemini cung cấp, và nhấn nút **"Commit"**.
+* **Bước 5: Commit & Push (Người dùng)**
+    * Mở view **Source Control**.
+    * Stage các file đã thay đổi.
+    * Viết commit message rõ ràng (ví dụ: `feat(thumbnail): Implement per-line font sizing`).
+    * Nhấn **Commit** và sau đó **Publish Branch** (hoặc **Sync Changes**).
 
-* **Bước 5: Publish Branch**
-    * **Hành động (Người dùng):** Trong view **Source Control**, nhấn nút **"Publish Branch"**.
+* **Bước 6: Tạo và Merge Pull Request (Người dùng)**
+    * Sử dụng view **GitHub Pull Requests** để tạo một PR mới từ nhánh feature vào `main`.
+    * Kiểm tra lại các thay đổi.
+    * Nhấn **Merge Pull Request** và sau đó **Delete Branch**.
 
-* **Bước 6: Tạo Pull Request (PR)**
-    * **Hành động (Người dùng):**
-        1.  Sau khi "Publish", VS Code sẽ đề nghị tạo PR. Hoặc vào view **GitHub Pull Requests** và nhấn **"Create PR"**.
-        2.  Trong tab "Create Pull Request" mới mở ra, kiểm tra lại thông tin và nhấn nút **"Create"** màu xanh dương.
+## III. Cấu trúc Phản hồi Tiêu chuẩn của Gemini
 
-* **Bước 7: Merge (Gộp) và Dọn dẹp PR**
-    * **Hành động (Người dùng):**
-        1.  Giao diện sẽ chuyển sang màn hình quản lý PR. Tại đây, bạn có thể rà soát lại các thay đổi trong mục "Files Changed".
-        2.  Nhấn nút **"Merge Pull Request"** màu xanh lá cây.
-        3.  Xác nhận việc Merge.
-        4.  Nhấn nút **"Delete Branch"** xuất hiện sau đó để dọn dẹp.
-
-## IV. Cấu trúc Phản hồi Tiêu chuẩn của Gemini
-
-Gemini sẽ tuân thủ 3 dạng phản hồi chính:
-
-1.  **Loại 1: Kế hoạch Thực thi:** Đề xuất hướng giải quyết cho một nhiệm vụ.
-2.  **Loại 2: Gói Bàn Giao:** Bàn giao mã nguồn hoàn chỉnh, bao gồm 7 mục: Mô tả, Cung cấp Code, Giải thích, Hướng dẫn, Lệnh Commit, Điểm Kiểm tra Chéo, và Kết quả kỳ vọng.
-3.  **Loại 3: Phản hồi & Hỏi đáp:** Thảo luận, tư vấn, và gỡ lỗi.
+1.  **Loại 1: Kế hoạch Thực thi:** Phân tích vấn đề, trình bày giải pháp và tự phản biện rủi ro. **Không chứa code.**
+2.  **Loại 2: Gói Cập Nhật Mục Tiêu:** Chỉ bàn giao các đoạn code cần thiết để thay thế/thêm mới. Mỗi gói phải có:
+    * **Số hiệu phiên bản & Timestamp:** `[Tên file] vX.Y.Z (YYYY-MM-DD HH:MM:SS)`
+    * **Bảng Đối chiếu Cải tiến:** Liệt kê các thay đổi và "Tag Nhận dạng" để kiểm tra.
+3.  **Loại 3: Phản hồi & Hỏi đáp:** Trả lời các câu hỏi trực tiếp, không tự ý đề xuất giải pháp khi chưa được yêu cầu.
