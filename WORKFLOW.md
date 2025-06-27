@@ -1,58 +1,51 @@
-# Quy trình Hợp tác Phát triển - v5.0 (Git-Centric)
+# QUY TRÌNH LÀM VIỆC DỰ ÁN (Project Workflow)
+# Version: 1.0
+# Last Updated: 2025-06-27
 
-Tài liệu này là "nguồn sự thật duy nhất" (single source of truth) quy định về quy trình làm việc, vai trò, và trách nhiệm giữa Người dùng (Project Manager/Developer) và Gemini (AI/Collaborating Programmer) cho dự án Gemini Creative Suite.
+## 1. Triết lý Chung
+* Dự án tuân thủ quy trình Git-flow đơn giản, lấy `main` làm nhánh chính.
+* Mọi thay đổi đều được thực hiện trên các nhánh tính năng (`feature/`), nhánh sửa lỗi (`fix/`), hoặc nhánh tài liệu (`docs/`) trước khi hợp nhất vào `main`.
+* Sử dụng Gemini AI như một lập trình viên Python cộng tác cao cấp, tuân thủ chặt chẽ các quy tắc được định nghĩa trong tài liệu này.
+* **Nguồn sự thật duy nhất (Single Source of Truth):** Nhánh `main` trên repository GitHub.
 
-## I. Nguyên tắc Vàng (Golden Rules)
+## 2. Quy trình làm việc với Git
+### 2.1. Đặt tên nhánh
+* **Tính năng mới:** `feature/<ten-tinh-nang-ngan-gon>` (ví dụ: `feature/thumbnail-per-line-styling`)
+* **Sửa lỗi:** `fix/<ten-loi-ngan-gon>` (ví dụ: `fix/font-weight-logic`)
+* **Cập nhật tài liệu:** `docs/<noi-dung-cap-nhat>` (ví dụ: `docs/update-workflow-file`)
+* **Tái cấu trúc code:** `refactor/<pham-vi-tai-cau-truc>` (ví dụ: `refactor/simplify-tts-logic`)
 
-1.  **GitHub là Bộ não:** Repository GitHub là bộ nhớ duy nhất và là nguồn sự thật duy nhất cho mã nguồn. Gemini không được phép "nhớ" code, mà phải dựa vào phiên bản do người dùng chỉ định.
-2.  **Rõ ràng & Minh bạch:** Mọi yêu cầu và phản hồi phải tuân thủ nghiêm ngặt các cấu trúc đã được định nghĩa trong tài liệu này để tránh hiểu lầm.
-3.  **Phân tích Trước, Code Sau:** Gemini không được phép cung cấp code ngay lập tức. Mọi đề xuất thay đổi phải bắt đầu bằng một bản **"Kế hoạch Thực thi"** chi tiết, bao gồm phân tích và tự phản biện rủi ro, và phải được người dùng phê duyệt trước.
+### 2.2. Quy ước Commit Message
+* Sử dụng quy ước **Conventional Commits** để tự động hóa và làm rõ lịch sử dự án.
+* **Cấu trúc:** `<type>(<scope>): <subject>`
+* **Các `type` phổ biến:**
+    * `feat`: Thêm một tính năng mới.
+    * `fix`: Sửa một lỗi.
+    * `docs`: Thay đổi liên quan đến tài liệu.
+    * `style`: Thay đổi về định dạng code (dấu chấm phẩy, thụt lề...).
+    * `refactor`: Tái cấu trúc code mà không sửa lỗi hay thêm tính năng.
+    * `test`: Thêm hoặc sửa các bài test.
+    * `chore`: Các công việc khác không ảnh hưởng đến mã nguồn (cập nhật build scripts, quản lý package...).
+* **Ví dụ:** `feat(thumbnail): Refactor to support per-line styling`, `fix(ui): Correct button alignment`, `docs: Consolidate workflow and remove outdated prompts`.
 
-## II. Quy trình Làm việc trên một Feature
+### 2.3. Pull Requests (PR)
+* Mỗi nhánh sau khi hoàn thành sẽ được mở Pull Request vào nhánh `main`.
+* PR cần có mô tả rõ ràng về những gì đã thay đổi và tại sao.
 
-### Giai đoạn 1: Khởi tạo
+## 3. Quy trình Cộng tác với Gemini AI
+### 3.1. Vai trò và Nhiệm vụ của AI
+* AI đóng vai trò là một **lập trình viên Python cộng tác cao cấp**.
+* Mọi phân tích và đề xuất của AI phải dựa trên phiên bản code mới nhất trên nhánh `main` đã được cung cấp.
 
-* **Bước 1: Tạo Branch (Người dùng)**
-    * Trong Terminal của VS Code, đồng bộ với `main` và tạo nhánh mới:
-        ```bash
-        git checkout main
-        git pull origin main
-        git checkout -b <tên-nhánh-gợi-nhớ>
-        ```
-    * *Ví dụ hiện tại:* Chúng ta đang làm việc trên nhánh `feature/4.1-thumbnail-enhancements`.
+### 3.2. Quy tắc Vàng (Bắt buộc tuân thủ)
+1.  **Phân tích Trước, Code Sau:** AI phải trình bày "Kế hoạch Thực thi" chi tiết và phần "Tự Phản biện". Kế hoạch phải được người dùng phê duyệt trước khi viết code.
+2.  **Cung cấp Code có Mục tiêu:** AI chỉ được cung cấp các đoạn code của hàm hoặc class cần thay đổi, sử dụng `(...)` để biểu thị phần code không đổi.
+3.  **Ghi chú và Phiên bản:** Mọi mã nguồn AI cung cấp phải có Docstring, Comment và ghi chú phiên bản/timestamp nếu có thay đổi lớn.
 
-* **Bước 2: Giao việc & Phân tích (Hai bên)**
-    * **Người dùng:** Cung cấp phiên bản code ổn định nhất làm nền tảng và nêu rõ nhiệm vụ cần thực hiện.
-    * **Gemini:** Phản hồi bằng một bản **"Kế hoạch Thực thi"** chi tiết (không code).
-
-### Giai đoạn 2: Phát triển & Kiểm thử
-
-* **Bước 3: Phê duyệt & Bàn giao (Hai bên)**
-    * **Người dùng:** Phê duyệt hoặc yêu cầu chỉnh sửa kế hoạch.
-    * **Gemini:** Sau khi kế hoạch được duyệt, cung cấp một **"Gói Cập Nhật Mục Tiêu"** (chỉ các hàm/class cần thay đổi).
-
-* **Bước 4: Áp dụng & Kiểm tra (Người dùng)**
-    * Người dùng tự áp dụng code vào file tương ứng.
-    * Chạy thử, kiểm tra, và phản hồi về kết quả.
-    * Quá trình này có thể lặp lại nhiều lần cho đến khi tính năng hoàn thiện.
-
-### Giai đoạn 3: Tích hợp (Hoàn toàn trong VS Code UI)
-
-* **Bước 5: Commit & Push (Người dùng)**
-    * Mở view **Source Control**.
-    * Stage các file đã thay đổi.
-    * Viết commit message rõ ràng (ví dụ: `feat(thumbnail): Implement per-line font sizing`).
-    * Nhấn **Commit** và sau đó **Publish Branch** (hoặc **Sync Changes**).
-
-* **Bước 6: Tạo và Merge Pull Request (Người dùng)**
-    * Sử dụng view **GitHub Pull Requests** để tạo một PR mới từ nhánh feature vào `main`.
-    * Kiểm tra lại các thay đổi.
-    * Nhấn **Merge Pull Request** và sau đó **Delete Branch**.
-
-## III. Cấu trúc Phản hồi Tiêu chuẩn của Gemini
-
-1.  **Loại 1: Kế hoạch Thực thi:** Phân tích vấn đề, trình bày giải pháp và tự phản biện rủi ro. **Không chứa code.**
-2.  **Loại 2: Gói Cập Nhật Mục Tiêu:** Chỉ bàn giao các đoạn code cần thiết để thay thế/thêm mới. Mỗi gói phải có:
-    * **Số hiệu phiên bản & Timestamp:** `[Tên file] vX.Y.Z (YYYY-MM-DD HH:MM:SS)`
-    * **Bảng Đối chiếu Cải tiến:** Liệt kê các thay đổi và "Tag Nhận dạng" để kiểm tra.
-3.  **Loại 3: Phản hồi & Hỏi đáp:** Trả lời các câu hỏi trực tiếp, không tự ý đề xuất giải pháp khi chưa được yêu cầu.
+### 3.3. Cấu trúc Phản hồi Chuẩn của AI
+* Mọi gói cập nhật code phải tuân theo cấu trúc 5 phần:
+    1.  **Phần 1: Bối cảnh và Phân tích:** Giới thiệu mục tiêu, liên kết với kế hoạch đã duyệt.
+    2.  **Phần 2: Gói Cập Nhật Mục Tiêu:** Cung cấp mã nguồn thay đổi.
+    3.  **Phần 3: Giải thích Chi tiết Mã nguồn:** Giải thích lý do và logic của thay đổi.
+    4.  **Phần 4: Hướng dẫn Tích hợp:** Các bước Git và thao tác trên file để áp dụng code.
+    5.  **Phần 5: Kết quả Kỳ vọng và Bước tiếp theo:** Mô tả trạng thái dự án sau khi áp dụng và đề xuất bước kế tiếp.
