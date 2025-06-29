@@ -276,13 +276,13 @@ class TTSApp:
             
             end_phrase = "Xin chân thành cảm ơn và hẹn gặp lại quý vị!"
             if end_phrase in content_to_paste:
-                continuation_prompt = f"(Bạn đã viết được {new_chunk_word_count} từ cho đoạn trên. Tổng kết.)"
+                continuation_prompt = f"Bạn đã viết được {new_chunk_word_count} từ cho đoạn trên. Tổng kết."
                 self.continuation_prompt_var.set(continuation_prompt)
                 self.log_message("Đã phát hiện đoạn kết truyện! Tự động dừng theo dõi.")
                 if self.is_monitoring_clipboard:
                     self.toggle_clipboard_monitoring()
             else:
-                continuation_prompt = f"(Đã nhận được {new_chunk_word_count} từ. Vui lòng viết tiếp phần sau của câu chuyện.)"
+                continuation_prompt = f"Bạn đã viết được {new_chunk_word_count} từ cho đoạn trên. Continue."
                 self.continuation_prompt_var.set(continuation_prompt)
         except Exception as e:
             messagebox.showerror("Lỗi", f"Không thể xử lý nội dung: {e}")
