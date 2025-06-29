@@ -2,6 +2,11 @@
 
 Tất cả các thay đổi đáng chú ý của dự án sẽ được ghi lại tại đây.
 Dự án này tuân theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+## [1.0.1] - 2025-06-28
+
+### Đã sửa (Fixed)
+-   **Văn bản Đầu ra:** Tinh chỉnh lại các chuỗi văn bản trong `main_app.py` để đảm bảo tính nhất quán và chất lượng khi sử dụng làm prompt cho các tác vụ khác.
+
 
 ## [1.0.0] - 2025-06-28
 

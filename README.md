@@ -1,4 +1,4 @@
-# Gemini Creative Suite v0.9.0
+# Gemini Creative Suite v1.0.1
 
 **[Xem Lịch sử Thay đổi (Changelog)](CHANGELOG.md) | [Xem Lộ trình Phát triển (Roadmap)](ROADMAP.md) | [Xem Quy trình Làm việc (Workflow)](WORKFLOW.md) | [Ghi chú Kỹ thuật](TECHNICAL_NOTES.md)**
 
