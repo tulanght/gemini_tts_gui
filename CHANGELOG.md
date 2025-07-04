@@ -2,6 +2,12 @@
 
 Tất cả các thay đổi đáng chú ý của dự án sẽ được ghi lại tại đây.
 Dự án này tuân theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+## [1.0.2] - 2025-07-04
+
+### Đã sửa (Fixed)
+-   **Logic Bóc tách Tiêu đề:** Cải tiến và sửa lỗi hàm `_parse_titles` trong `main_app.py` để trích xuất chính xác các lựa chọn tiêu đề từ định dạng phản hồi mới của Gemini.
+
 ## [1.0.1] - 2025-06-28
 
 ### Đã sửa (Fixed)
