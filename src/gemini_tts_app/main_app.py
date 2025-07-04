@@ -425,37 +425,43 @@ class TTSApp:
         self.save_button.grid(row=0, column=2, sticky="e", padx=5)
 
     def _parse_titles(self, text):
+        """
+        Sử dụng phương pháp tách chuỗi nhiều lớp để trích xuất các lựa chọn tiêu đề
+        một cách ổn định và chính xác từ phản hồi của Gemini.
+        """
+        # --- LOGIC BÓC TÁCH MỚI ---
         cleaned_options = []
-        # Chiến lược: Tìm tất cả các khối bắt đầu bằng header
-        pattern = re.compile(r'(#### \*\*Lựa chọn \d+[\s\S]*?)(?=#### \*\*Lựa chọn \d+|\Z)')
-        blocks = pattern.findall(text)
-        
-        for block in blocks:
-            content = ""
-            lines = [line.strip() for line in block.strip().split('\n') if line.strip()]
-            if not lines: continue
+        try:
+            # Bước 1: Phân tách các khối lựa chọn lớn bằng "---"
+            blocks = text.split('---')
+            
+            for block in blocks:
+                # Bỏ qua các khối không chứa thông tin cần thiết (ví dụ: phần mở đầu)
+                if "**Tiêu đề:**" not in block:
+                    continue
 
-            header_line = lines[0]
-            
-            # Kịch bản 1: Tiêu đề trên cùng dòng (nằm sau dấu :)
-            if ":" in header_line:
-                possible_title = header_line.split(":", 1)[1].strip()
-                # Loại bỏ phần mô tả trong ngoặc đơn nếu có
-                possible_title = re.sub(r'\s*\(.*?\)', '', possible_title).strip()
-                if len(possible_title) > 20: 
-                    content = possible_title
-            
-            # Kịch bản 2: Nếu không tìm thấy, tìm ở dòng tiếp theo
-            if not content and len(lines) > 1:
-                # Dòng tiếp theo không phải là dòng metadata
-                if not lines[1].startswith('*'):
-                    content = lines[1]
-            
-            if content:
-                # Làm sạch cuối cùng
-                cleaned_options.append(content.replace('**', '').replace('`', '').strip())
-                    
-        return cleaned_options
+                # Bước 2: Tìm dòng "chìa khóa" và trích xuất nội dung
+                lines = block.strip().split('\n')
+                for line in lines:
+                    line = line.strip()
+                    if line.startswith("**Tiêu đề:**"):
+                        # Lấy toàn bộ nội dung sau "Tiêu đề:"
+                        raw_title = line.split(":", 1)[1]
+                        
+                        # Bước 3: Làm sạch dữ liệu
+                        # Xóa các ký tự markdown và khoảng trắng thừa
+                        clean_title = raw_title.replace('**', '').strip()
+                        
+                        if clean_title:
+                            cleaned_options.append(clean_title)
+                        # Sau khi tìm thấy tiêu đề trong một khối, có thể bỏ qua các dòng còn lại của khối đó
+                        break 
+                        
+            return cleaned_options
+        except Exception as e:
+            self.log_message(f"Lỗi trong quá trình bóc tách tiêu đề: {e}")
+            # Trả về một danh sách rỗng nếu có lỗi
+            return []
 
     # --- HOTFIX [2025-06-19]: Viết lại hoàn toàn logic bóc tách thumbnail cho chính xác và ổn định. Thay thế toàn bộ hàm này. ---
     def _parse_thumbnails(self, text):
