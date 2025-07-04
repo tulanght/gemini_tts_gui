@@ -1,6 +1,6 @@
 # QUY TRÌNH LÀM VIỆC DỰ ÁN (Project Workflow)
-# Version: 2.2
-# Last Updated: 2025-06-28
+# Version: 2.3
+# Last Updated: 2025-07-05
 
 ## 1. Checklist Khởi đầu (Bắt buộc trước mỗi nhiệm vụ mới)
 Trước khi bắt đầu bất kỳ công việc nào, người thực hiện (cả bạn và AI) phải xác nhận đã hoàn thành các mục sau:
@@ -40,6 +40,14 @@ Trước khi bắt đầu bất kỳ công việc nào, người thực hiện (
         pip freeze > requirements.txt
         ```
     4.  Sắp xếp lại file theo thứ tự A-Z (tùy chọn nhưng khuyến khích).
+
+### 3.5. Quy trình Phát hành (Release)
+Khi chuẩn bị cho một bản phát hành mới, quy trình sau phải được tuân thủ:
+1.  **Kiểm tra Phiên bản:** Mở file `CHANGELOG.md` và xác định số phiên bản cuối cùng đã được phát hành.
+2.  **Quyết định Phiên bản mới:** Dựa trên các thay đổi đã được hợp nhất vào `main`, quyết định số phiên bản tiếp theo (ví dụ: `1.0.1` -> `1.0.2` cho sửa lỗi, `1.0.1` -> `1.1.0` cho tính năng mới).
+3.  **Tạo nhánh Release:** Tạo một nhánh mới với tên theo phiên bản, ví dụ: `release/v1.0.2`.
+4.  **Cập nhật Tài liệu:** Trên nhánh này, cập nhật `CHANGELOG.md` và `README.md` với số phiên bản mới.
+5.  **Hợp nhất:** Tạo Pull Request để hợp nhất nhánh release vào `main`.
 
 ## 4. Quy trình Cộng tác với Gemini AI (BẮT BUỘC)
 ### 4.1. Bước 0: Xác nhận Nhiệm vụ (Khóa an toàn)
