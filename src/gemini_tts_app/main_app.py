@@ -1,5 +1,6 @@
 # main_app.py - show_thumbnail_preview
 # v2.0 - 2025-06-24: Refactored to use ThumbnailPreviewWindow class
+import importlib.metadata
 import tkinter as tk
 from tkinter import ttk, scrolledtext, filedialog, messagebox
 import threading
@@ -53,7 +54,15 @@ class TkinterLogHandler(logging.Handler):
 class TTSApp:
     def __init__(self, root):
         self.root = root
-        self.root.title(f"{APP_NAME} v{APP_VERSION}")
+        # --- Tự động nạp phiên bản ---
+        try:
+            # Tên package được định nghĩa trong pyproject.toml [project] name
+            app_version = importlib.metadata.version('gemini-creative-suite')
+        except importlib.metadata.PackageNotFoundError:
+            app_version = "0.0.0-dev" # Fallback nếu không tìm thấy
+
+        self.root.title(f"{APP_NAME} v{app_version}")
+        # -----------------------------
         self.root.geometry("950x850")
 
         style = ttk.Style(self.root)
