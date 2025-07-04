@@ -1,7 +1,6 @@
 # src/gemini_tts_app/constants.py
 # Phiên bản: constants_v7.0_assistant_setup
-APP_NAME = "Gemini TTS GUI"
-APP_VERSION = "0.7.0" # Nâng version cho tính năng mới
+APP_NAME = "Gemini Creative Suite"
 APP_AUTHOR = "Cuong Tran" 
 
 # --- API Key Settings ---
