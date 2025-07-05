@@ -472,32 +472,49 @@ class TTSApp:
             # Trả về một danh sách rỗng nếu có lỗi
             return []
 
-    # --- HOTFIX [2025-06-19]: Viết lại hoàn toàn logic bóc tách thumbnail cho chính xác và ổn định. Thay thế toàn bộ hàm này. ---
-    def _parse_thumbnails(self, text):
+    def _parse_thumbnails(self, text: str) -> list[str]:
         """
-        Sử dụng một pattern Regex duy nhất và mạnh mẽ để tìm tất cả các kịch bản thumbnail
-        và sau đó làm sạch chúng.
+        Bóc tách kịch bản thumbnail bằng cách nhận diện các dòng được in đậm (**)
+        và loại trừ một cách tường minh các dòng metadata như "phong cách".
         """
-        # Pattern tìm tất cả nội dung nằm sau "KỊCH BẢN THUMBNAIL:" và dừng lại trước Lựa chọn tiếp theo, ###, hoặc cuối văn bản.
-        pattern = re.compile(r'KỊCH BẢN THUMBNAIL:([\s\S]+?)(?=Lựa chọn \d+|###|\Z)', re.IGNORECASE)
-        raw_options = pattern.findall(text)
-        
-        cleaned_options = []
-        for raw_content in raw_options:
-            # Quy trình làm sạch chuyên sâu
-            lines = [line.strip() for line in raw_content.strip().split('\n')]
+        self.log_message("Bắt đầu bóc tách kịch bản thumbnail (logic v7.0 - Loại trừ)...")
+        try:
+            # Tách văn bản thành các khối lựa chọn
+            blocks = text.split("---")
             
-            # Loại bỏ các dòng metadata và các ký tự thừa
-            valid_lines = [
-                line.replace('**', '').strip() 
-                for line in lines 
-                if line.strip() and '---' not in line and not line.strip().startswith(('*', '#'))
-            ]
-            
-            if valid_lines:
-                cleaned_options.append("\n".join(valid_lines))
+            cleaned_options = []
+            # Bỏ qua khối đầu tiên (thường là phần giới thiệu)
+            for block in blocks[1:]:
+                if not block.strip():
+                    continue
+
+                script_lines = []
+                for line in block.strip().split('\n'):
+                    stripped_line = line.strip()
+
+                    # ĐIỀU KIỆN THEN CHỐT:
+                    # Phải là dòng in đậm VÀ không phải là dòng mô tả phong cách.
+                    is_bolded = stripped_line.startswith('**') and stripped_line.endswith('**')
+                    is_style_line = '(phong cách' in stripped_line.lower()
+
+                    if is_bolded and not is_style_line:
+                        # Làm sạch và lưu lại dòng kịch bản
+                        clean_line = stripped_line.replace('**', '').strip()
+                        if clean_line:
+                            script_lines.append(clean_line)
                 
-        return cleaned_options
+                if script_lines:
+                    full_script = "\n".join(script_lines)
+                    cleaned_options.append(full_script)
+            
+            self.log_message(f"Hoàn tất. Tìm thấy {len(cleaned_options)} kịch bản hợp lệ.")
+            return cleaned_options
+
+        except Exception as e:
+            import traceback
+            self.log_message(f"[ERROR] Lỗi nghiêm trọng trong quá trình bóc tách thumbnail: {e}")
+            self.log_message(f"[ERROR] Traceback: {traceback.format_exc()}")
+            return []
 
     def parse_input_text(self):
         self.options_display_text.config(state=tk.NORMAL)
