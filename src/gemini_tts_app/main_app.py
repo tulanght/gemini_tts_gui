@@ -335,8 +335,8 @@ class TTSApp:
         self.is_monitoring_clipboard = False
         if self.clipboard_monitoring_thread and self.clipboard_monitoring_thread.is_alive():
             self.clipboard_monitoring_thread.join(timeout=1.1)
-        if self.db_manager:
-            self.db_manager.close()
+        #if self.db_manager:
+            #self.db_manager.close()
         if self.floating_panel and self.floating_panel.winfo_exists():
             self.floating_panel.destroy()
         self.root.destroy()
