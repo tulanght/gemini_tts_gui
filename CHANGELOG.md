@@ -3,6 +3,30 @@
 Tất cả các thay đổi đáng chú ý của dự án sẽ được ghi lại tại đây.
 Dự án này tuân theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.0.4] - 2025-07-06
+
+### Đã thêm (Added)
+- 
+
+### Đã thay đổi (Changed)
+- 
+
+### Đã sửa (Fixed)
+- 
+
+
+## [1.0.3] - 2025-07-06
+
+        ### Đã thêm (Added)
+        - 
+
+        ### Đã thay đổi (Changed)
+        - 
+
+        ### Đã sửa (Fixed)
+        - 
+
+        
 ## [1.0.2] - 2025-07-04
 
 ### Đã sửa (Fixed)
