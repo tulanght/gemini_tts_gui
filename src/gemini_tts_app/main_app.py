@@ -1,5 +1,5 @@
 # main_app.py - show_thumbnail_preview
-# v2.0 - 2025-06-24: Refactored to use ThumbnailPreviewWindow class
+# v3.0 - 2025-07-12: Sửa lại hàm save_final_version để lưu vào hệ thống "Dự án" mới.
 import tkinter as tk
 from tkinter import ttk, scrolledtext, filedialog, messagebox
 import threading
@@ -35,6 +35,7 @@ from .constants import (
 )
 from .utils import get_resource_path
 from .database import DatabaseManager
+from .library_tab import LibraryTab
 
 class TkinterLogHandler(logging.Handler):
     def __init__(self, text_widget):
@@ -104,6 +105,13 @@ class TTSApp:
         self.composer_tab = ttk.Frame(self.notebook, padding="10")
         self.notebook.add(self.composer_tab, text="Soạn Truyện Dài")
         self.create_composer_tab_widgets()
+        
+         # --- Khởi tạo Tab Thư viện từ module riêng ---
+        library_tab = LibraryTab(self.notebook, self.db_manager, self)
+        self.notebook.add(library_tab, text="Thư viện")
+        # ---------------------------------------------
+
+        self.notebook.pack(expand=True, fill="both")
 
         self.settings_tab = ttk.Frame(self.notebook, padding="10")
         self.notebook.add(self.settings_tab, text="Settings")
@@ -113,6 +121,7 @@ class TTSApp:
         self.update_voice_display(self.selected_voice_name.get())
         self.notebook.pack(expand=True, fill="both", padx=5, pady=5)
         self.update_word_count()
+        
 
     
     def setup_ui_logging(self):
@@ -335,8 +344,8 @@ class TTSApp:
         self.is_monitoring_clipboard = False
         if self.clipboard_monitoring_thread and self.clipboard_monitoring_thread.is_alive():
             self.clipboard_monitoring_thread.join(timeout=1.1)
-        if self.db_manager:
-            self.db_manager.close()
+        #if self.db_manager:
+            #self.db_manager.close()
         if self.floating_panel and self.floating_panel.winfo_exists():
             self.floating_panel.destroy()
         self.root.destroy()
@@ -611,23 +620,27 @@ class TTSApp:
         self.counter_label.config(text=label_text, foreground=label_color)
         self.save_button.config(state=button_state)
     
-    # --- HOTFIX [2025-06-18 09:40]: Thêm logic lưu trữ vào CSDL cho nút "Chốt & Lưu". Thay thế toàn bộ hàm này. ---
     def save_final_version(self):
+        """
+        Lưu phiên bản cuối cùng vào đúng "Dự án Mặc định" trong hệ thống CSDL mới.
+        """
         final_text = self.editor_text.get("1.0", tk.END).strip()
         if not final_text:
             messagebox.showwarning("Nội dung trống", "Không có nội dung để lưu.", parent=self.assistant_tab)
             return
 
         mode = self.assistant_mode.get()
-        char_count = len(final_text)
-        word_count = len(final_text.split())
-        line_count = len(final_text.splitlines())
-        
-        success = False
-        if mode == "title":
-            success = self.db_manager.add_final_title(final_text, char_count, word_count)
-        elif mode == "thumbnail":
-            success = self.db_manager.add_final_thumbnail(final_text, char_count, word_count, line_count)
+        item_type = "Title" if mode == "title" else "Thumbnail"
+
+        # Tạo hoặc lấy ID của "Dự án Mặc định"
+        project_id = self.db_manager.create_project("Dự án Mặc định")
+
+        if not project_id:
+            messagebox.showerror("Lỗi CSDL", "Không thể tạo hoặc truy cập 'Dự án Mặc định'.", parent=self.assistant_tab)
+            return
+
+        # Thêm hoặc cập nhật (ghi đè) phiên bản cuối cùng vào dự án
+        success = self.db_manager.add_or_update_item(project_id, item_type, final_text)
 
         if success:
             messagebox.showinfo("Thành công", f"Đã lưu phương án '{mode}' thành công!", parent=self.assistant_tab)
@@ -684,6 +697,23 @@ class TTSApp:
             log_callback=self.log_message
         )
         
+    def reuse_assistant_content(self, content, option_type):
+        """
+        Nhận nội dung từ tab Thư viện và điền vào ô soạn thảo,
+        sau đó chuyển về tab Trợ lý Biên tập.
+        """
+        # Xác định radio button và ô text cần cập nhật
+        target_radio = self.title_radio if option_type == "Tiêu đề" else self.thumbnail_radio
+        target_text_widget = self.final_choice_text
+
+        # Cập nhật giao diện
+        target_radio.invoke() # Chọn đúng radio button
+        target_text_widget.delete("1.0", "end")
+        target_text_widget.insert("1.0", content)
+        
+        # Tự động chuyển về tab Trợ lý Biên tập (tab có chỉ số 2)
+        self.notebook.select(2)
+            
     # --- Các hàm của các tab khác (giữ nguyên, không tóm tắt) ---
     def _set_window_icon(self):
         try:
