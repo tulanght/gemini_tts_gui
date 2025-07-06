@@ -6,26 +6,12 @@ Dự án này tuân theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 ## [1.0.4] - 2025-07-06
 
 ### Đã thêm (Added)
-- 
-
-### Đã thay đổi (Changed)
-- 
-
-### Đã sửa (Fixed)
-- 
+- **Công cụ Hỗ trợ Phát hành:** Tạo kịch bản `scripts/release.py` để tự động hóa hoàn toàn việc nâng cấp và đồng bộ số phiên bản trên toàn bộ dự án, bao gồm các file: `constants.py`, `main_app.py`, `README.md` và `CHANGELOG.md`.
 
 
 ## [1.0.3] - 2025-07-06
 
-        ### Đã thêm (Added)
-        - 
-
-        ### Đã thay đổi (Changed)
-        - 
-
-        ### Đã sửa (Fixed)
-        - 
-
+- **Test chức năng:** `scripts/release.py`
         
 ## [1.0.2] - 2025-07-04
 
