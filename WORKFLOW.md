@@ -14,6 +14,10 @@ Trước khi bắt đầu bất kỳ công việc nào, người thực hiện (
 * **Hợp nhất qua Pull Request (Merge via PR):** Mọi thay đổi chỉ được đưa vào `main` thông qua một quy trình Pull Request có xem xét (review).
 * **AI là Cộng tác viên:** Gemini AI được xem như một lập trình viên cộng tác cao cấp, có trách nhiệm tuân thủ nghiêm ngặt toàn bộ quy trình được định nghĩa trong tài liệu này.
 
+### **2.1. Ghi phiên bản Tài liệu (MỚI)**
+* Đối với các file tài liệu quy trình và kế hoạch cốt lõi (`WORKFLOW.md`, `ROADMAP.md`, `TECHNICAL_NOTES.md`), mỗi lần có sự thay đổi quan trọng, người chỉnh sửa có trách nhiệm cập nhật số phiên bản và ngày tháng ở đầu file để tiện theo dõi.
+* Đối với các file mã nguồn (`.py`), không cần thêm thông tin này vì Git đã quản lý phiên bản.
+
 ## 3. Quy trình làm việc với Git & Môi trường
 ### 3.1. Đặt tên nhánh
 * **Tính năng mới:** `feature/<ten-tinh-nang-ngan-gon>`
