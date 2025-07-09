@@ -1,6 +1,6 @@
 # QUY TRÌNH LÀM VIỆC DỰ ÁN (Project Workflow)
-# Version: 2.3
-# Last Updated: 2025-07-05
+# Version: 2.4
+# Last Updated: 2025-07-07
 
 ## 1. Checklist Khởi đầu (Bắt buộc trước mỗi nhiệm vụ mới)
 Trước khi bắt đầu bất kỳ công việc nào, người thực hiện (cả bạn và AI) phải xác nhận đã hoàn thành các mục sau:
@@ -48,6 +48,13 @@ Khi chuẩn bị cho một bản phát hành mới, quy trình sau phải đư�
 3.  **Tạo nhánh Release:** Tạo một nhánh mới với tên theo phiên bản, ví dụ: `release/v1.0.2`.
 4.  **Cập nhật Tài liệu:** Trên nhánh này, cập nhật `CHANGELOG.md` và `README.md` với số phiên bản mới.
 5.  **Hợp nhất:** Tạo Pull Request để hợp nhất nhánh release vào `main`.
+
+### **3.6. Quy trình Cập nhật Roadmap (MỚI)**
+* **Mục đích:** Để `ROADMAP.md` luôn phản ánh đúng các mục tiêu tương lai và ghi nhận các thành tựu đã đạt được mà không bị lộn xộn.
+* **Quy trình:**
+    1.  Khi một giai đoạn hoặc một mục tiêu lớn trong `ROADMAP.md` được hoàn thành, mục đó sẽ được **xóa bỏ** khỏi phần kế hoạch.
+    2.  Thay vào đó, một **dòng tóm tắt duy nhất** về thành tựu đó sẽ được thêm vào mục `## 🏆 Thành tựu đã Đạt được` ở cuối file, kèm theo phiên bản hoàn thành.
+    3.  `ROADMAP.md` chỉ tập trung vào các mục tiêu "chiến lược". Các thay đổi chi tiết, "chiến thuật" vẫn thuộc về `CHANGELOG.md`.
 
 ## 4. Quy trình Cộng tác với Gemini AI (BẮT BUỘC)
 ### 4.1. Bước 0: Xác nhận Nhiệm vụ (Khóa an toàn)
