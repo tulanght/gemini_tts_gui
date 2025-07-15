@@ -1,7 +1,7 @@
 # file-path: src/gemini_tts_app/library_tab.py
-# version: 6.0
-# last-updated: 2025-07-12
-# description: Giao diện một bảng duy nhất, hiển thị phiên bản cuối cùng của mỗi loại. Hỗ trợ sửa đổi theo ngữ cảnh cho từng thành phần.
+# version: 6.1
+# last-updated: 2025-07-15
+# description: Thêm nút "Làm việc với Dự án này" để kích hoạt một dự án.
 
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog, scrolledtext
@@ -66,10 +66,28 @@ class LibraryTab(ttk.Frame):
         self.library_tree.pack(side="left", expand=True, fill="both")
         button_frame = ttk.Frame(self)
         button_frame.pack(fill="x", pady=(10,0))
+        # NÚT MỚI
+        self.work_on_project_button = ttk.Button(button_frame, text="Làm việc với Dự án này", style="Accent.TButton", command=self._set_active_project)
+        self.work_on_project_button.pack(side="left", padx=(0, 10))
         self.add_project_button = ttk.Button(button_frame, text="Tạo Dự án Mới...", command=self._create_new_project)
         self.add_project_button.pack(side="left")
         self.delete_project_button = ttk.Button(button_frame, text="Xóa Dự án", style="Accent.TButton", command=self._delete_selected_project)
         self.delete_project_button.pack(side="right")
+        
+
+    def _set_active_project(self):
+        """Lấy dự án được chọn và đặt nó làm dự án hoạt động trong ứng dụng chính."""
+        selected_iid = self.library_tree.focus()
+        if not selected_iid:
+            messagebox.showwarning("Chưa chọn", "Vui lòng chọn một dự án để bắt đầu làm việc.", parent=self)
+            return
+
+        project_id = int(selected_iid)
+        project_name = self.library_tree.item(selected_iid)['values'][1]
+
+        # Gọi hàm trong main_app để xử lý
+        self.main_app.set_active_project(project_id, project_name)
+
 
     def _on_tab_visible(self, event):
         self._load_project_data()
