@@ -1,6 +1,7 @@
 # Lộ trình Phát triển (Roadmap)
-# Phiên bản: 2.0
-# Cập nhật lần cuối: 2025-07-06
+# version: 2.0
+# last-updated: 2025-07-16
+# description: Tái cấu trúc lại toàn bộ lộ trình, tích hợp các mục tiêu mới và chia thành các giai đoạn phát triển rõ ràng.
 
 Tài liệu này mô tả tầm nhìn và kế hoạch phát triển cho các phiên bản tiếp theo của Gemini Creative Suite.
 
@@ -11,12 +12,7 @@ Trở thành một bộ công cụ "tất cả trong một" (all-in-one), mạnh
 
 ## Giai đoạn 1: Hoàn thiện & Ổn định (Mục tiêu gần)
 
-### 1.1. Cải tiến "Trợ lý Biên tập" - Quản lý Dữ liệu
-* **Vấn đề:** Nút "Chốt & Lưu" hiện tại không cho phép người dùng xem lại các tiêu đề hay kịch bản thumbnail đã lưu.
-* **Yêu cầu:**
-    * [ ] Xây dựng một giao diện (có thể là một cửa sổ con hoặc một tab mới) để người dùng có thể **xem lại, chỉnh sửa, hoặc xóa** các lựa chọn đã được lưu vào cơ sở dữ liệu.
-
-### 1.2. Cải tiến "Text-to-Speech" - Hỗ trợ Đa ngôn ngữ
+### 1.1. Cải tiến "Text-to-Speech" - Hỗ trợ Đa ngôn ngữ
 * **Vấn đề:** Các "Reading Style Prompt" hiện tại được viết cứng cho tiếng Việt.
 * **Yêu cầu:**
     * [ ] Nghiên cứu và thêm một menu lựa chọn ngôn ngữ (tối thiểu là Tiếng Việt và Tiếng Anh).
@@ -24,24 +20,19 @@ Trở thành một bộ công cụ "tất cả trong một" (all-in-one), mạnh
 
 ---
 
-## Giai đoạn 2: Quản lý & Mở rộng (Mục tiêu trung hạn)
+## Giai đoạn 2: Tối ưu & Nâng cao (Mục tiêu dài hạn)
 
-### 2.1. Tính năng "Quản lý Dự án" - Đồng bộ Nội dung
-* **Vấn đề:** Các module (Soạn Truyện, Tiêu đề, Thumbnail) đang hoạt động độc lập, thiếu sự liên kết.
-* **Yêu cầu:**
-    * [ ] Xây dựng một hệ thống để liên kết một nội dung truyện dài với tiêu đề và kịch bản thumbnail tương ứng của nó.
-    * [ ] Có thể cần một giao diện "Quản lý Dự án" mới, hiển thị danh sách các "dự án truyện", cho phép người dùng quản lý chúng một cách nhất quán.
-
-## Giai đoạn 3: Tối ưu & Nâng cao (Mục tiêu dài hạn)
-
-### 3.1. Tối ưu Giao diện (UI/UX)
+### 2.1. Tối ưu Giao diện (UI/UX)
 * **Vấn đề:** Giao diện của tất cả các tab hiện tại được thiết kế ở mức cơ bản.
 * **Yêu cầu:** Đây là một mục tiêu dài hạn, cần liên tục nghiên cứu và đưa ra các đề xuất cải tiến về bố cục, cách sắp xếp các nút bấm và luồng tương tác để tối ưu trải nghiệm người dùng.
 
-### 3.2. Module Phụ đề
-* **Kế hoạch cũ (chuyển sang giai đoạn này):**
+### 2.2. Module Phụ đề
+* **Yêu cầu:**
     * [ ] Xây dựng tính năng tải phụ đề từ một video YouTube.
     * [ ] Xây dựng tính năng tạo file phụ đề (`.srt`) từ kịch bản và file audio đã tạo.
 
-### 3.3. Tích hợp AI tạo ảnh
-* **Ý tưởng:** Nghiên cứu tích hợp các model tạo ảnh (ví dụ: Midjourney, Stable Diffusion) để tạo ảnh nền cho thumbnail.
+---
+
+## ✅ Thành tựu đã Đạt được (Key Milestones Achieved)
+
+* **Quản lý Dự án & Thư viện (Hoàn thành trong v1.0.x):** Xây dựng thành công hệ thống "Thư viện" dựa trên mô hình "Dự án", cho phép người dùng tạo, quản lý và chỉnh sửa các thành phần (Truyện, Tiêu đề, Thumbnail) một cách có tổ chức và liền mạch.
