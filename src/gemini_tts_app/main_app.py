@@ -1,5 +1,5 @@
-# main_app.py - show_thumbnail_preview
-# v2.0 - 2025-06-24: Refactored to use ThumbnailPreviewWindow class
+# file-path: src/gemini_tts_app/main_app.py (chỉ phần chỉnh sửa)
+# v5.1 - 2025-07-15: Sửa lại hàm lưu truyện để kết nối với "Dự án đang hoạt động".
 import tkinter as tk
 from tkinter import ttk, scrolledtext, filedialog, messagebox
 import threading
@@ -35,6 +35,7 @@ from .constants import (
 )
 from .utils import get_resource_path
 from .database import DatabaseManager
+from .library_tab import LibraryTab
 
 class TkinterLogHandler(logging.Handler):
     def __init__(self, text_widget):
@@ -104,6 +105,13 @@ class TTSApp:
         self.composer_tab = ttk.Frame(self.notebook, padding="10")
         self.notebook.add(self.composer_tab, text="Soạn Truyện Dài")
         self.create_composer_tab_widgets()
+        
+         # --- Khởi tạo Tab Thư viện từ module riêng ---
+        library_tab = LibraryTab(self.notebook, self.db_manager, self)
+        self.notebook.add(library_tab, text="Thư viện")
+        # ---------------------------------------------
+
+        self.notebook.pack(expand=True, fill="both")
 
         self.settings_tab = ttk.Frame(self.notebook, padding="10")
         self.notebook.add(self.settings_tab, text="Settings")
@@ -111,9 +119,40 @@ class TTSApp:
 
         self.setup_ui_logging()
         self.update_voice_display(self.selected_voice_name.get())
-        self.notebook.pack(expand=True, fill="both", padx=5, pady=5)
+ 
+       
         self.update_word_count()
+        
+        self.active_project_status = tk.StringVar(value="Trạng thái: Chưa có dự án nào đang hoạt động.")
+        # --- Cấu hình layout grid cho cửa sổ chính ---
+        self.root.rowconfigure(0, weight=1) # Hàng 0 (chứa notebook) sẽ mở rộng theo chiều dọc
+        self.root.columnconfigure(0, weight=1) # Cột 0 sẽ mở rộng theo chiều ngang
 
+        # Đặt notebook vào hàng 0, co giãn theo cả 4 hướng
+        self.notebook.grid(row=0, column=0, sticky="nsew")
+
+        # --- Thanh trạng thái (MỚI) ---
+        self.status_bar_frame = ttk.Frame(self.root, padding=5) # Bỏ style mặc định
+        self.status_bar_frame.grid(row=1, column=0, sticky="ew", ipady=2)
+
+        status_label = ttk.Label(self.status_bar_frame, textvariable=self.active_project_status, anchor="w")
+        status_label.pack(fill="x", expand=True) # Dùng pack bên trong frame này là ổn
+        
+        self._load_projects_into_composer_combobox()
+        
+        # Thêm vào trong hàm __init__
+        self.active_project_id = None
+        self.active_project_name = None
+        
+        
+        # --- Cấu hình màu sắc cho thanh trạng thái ---
+        self.STATUS_COLOR_INCOMPLETE = "#FFF9C4" # Vàng nhạt
+        self.STATUS_COLOR_COMPLETE = "#C8E6C9"   # Xanh lá nhạt
+        self.STATUS_COLOR_DEFAULT = self.root.cget('bg') # Lấy màu nền mặc định
+
+        style = ttk.Style()
+        style.configure("Incomplete.TFrame", background=self.STATUS_COLOR_INCOMPLETE)
+        style.configure("Complete.TFrame", background=self.STATUS_COLOR_COMPLETE)
     
     def setup_ui_logging(self):
         """Tạo và thêm handler để hiển thị log trên giao diện."""
@@ -149,6 +188,38 @@ class TTSApp:
         self.toggle_panel_button = ttk.Button(frame, text="Mở Bảng điều khiển Viết truyện", command=self.toggle_composer_panel, style="Accent.TButton")
         self.toggle_panel_button.grid(row=1, column=0, pady=(10,0))
         
+        # --- KHUNG CHỌN DỰ ÁN VÀ LƯU VÀO CSDL (MỚI) ---
+        project_frame = ttk.LabelFrame(frame, text="Lưu vào Thư viện", padding=10)
+        project_frame.grid(row=2, column=0, sticky="ew", padx=0, pady=(10,0))
+        project_frame.columnconfigure(1, weight=1)
+
+        ttk.Label(project_frame, text="Chọn Dự án:").grid(row=0, column=0, padx=(0,5), sticky="w")
+
+        self.composer_project_combobox = ttk.Combobox(project_frame, state="readonly", width=40)
+        self.composer_project_combobox.grid(row=0, column=1, padx=5, sticky="ew")
+
+        save_to_db_button = ttk.Button(project_frame, text="Lưu truyện vào Dự án", style="Accent.TButton", command=self._save_composer_story_to_project)
+        save_to_db_button.grid(row=0, column=2, padx=5)
+
+        # Chúng ta có thể thêm một nút tải lại danh sách nếu cần
+        # reload_button = ttk.Button(project_frame, text="Tải lại", command=self._load_projects_into_composer_combobox)
+        # reload_button.grid(row=0, column=3, padx=5)
+    def _check_and_update_project_status_color(self):
+        """Kiểm tra và cập nhật màu nền cho thanh trạng thái dựa trên tiến độ dự án."""
+        if not self.active_project_id:
+            self.status_bar_frame.configure(style="TFrame") # Trở về style mặc định
+            return
+
+        items = self.db_manager.get_items_for_project(self.active_project_id)
+        types_found = {item['type'] for item in items}
+
+        if {'Story', 'Title', 'Thumbnail'}.issubset(types_found):
+            # Đã đủ 3 thành phần
+            self.status_bar_frame.configure(style="Complete.TFrame")
+        else:
+            # Chưa đủ
+            self.status_bar_frame.configure(style="Incomplete.TFrame")    
+            
     def toggle_clipboard_monitoring(self):
         """Bật hoặc tắt chế độ theo dõi clipboard."""
         if self.is_monitoring_clipboard:
@@ -170,6 +241,38 @@ class TTSApp:
 
             self.clipboard_monitoring_thread = threading.Thread(target=self._clipboard_monitor_loop, daemon=True)
             self.clipboard_monitoring_thread.start()
+    def set_active_project(self, project_id, project_name):
+        """
+        Đặt một dự án làm "Dự án đang hoạt động", cập nhật trạng thái
+        và tải dữ liệu truyện vào tab Soạn Truyện.
+        """
+        self.active_project_id = project_id
+        self.active_project_name = project_name
+
+        # Cập nhật thanh trạng thái
+        self.active_project_status.set(f"Trạng thái: Đang làm việc trên dự án '{self.active_project_name}' (ID: {self.active_project_id})")
+
+        # SỬA LỖI: Tự động chọn đúng dự án trong Combobox
+        self.composer_project_combobox.set(project_name)
+
+        # Tìm nội dung truyện của dự án
+        items = self.db_manager.get_items_for_project(project_id)
+        story_content = ""
+        for item in items:
+            if item['type'] == 'Story':
+                story_content = item['content']
+                break
+
+        # Điền nội dung truyện vào ô soạn thảo
+        self.composer_text.delete("1.0", tk.END)
+        self.composer_text.insert("1.0", story_content)
+        self.update_composer_counter() # Cập nhật lại số từ/ký tự
+        
+        # GỌI HÀM KIỂM TRA MÀU SẮC Ở CUỐI
+        self._check_and_update_project_status_color()
+        # Tự động chuyển sang tab Soạn Truyện Dài (chỉ số 2)
+        self.notebook.select(2)
+        self.log_message(f"Đã kích hoạt dự án: '{project_name}'")
                 
     def _clipboard_monitor_loop(self):
         """Vòng lặp chạy ngầm để kiểm tra clipboard và áp dụng bộ lọc."""
@@ -340,6 +443,7 @@ class TTSApp:
         if self.floating_panel and self.floating_panel.winfo_exists():
             self.floating_panel.destroy()
         self.root.destroy()
+        
     # --- Hàm mới để kiểm tra nội dung clipboard ---
     def _is_valid_story_chunk(self, text: str) -> bool:
         """
@@ -363,6 +467,46 @@ class TTSApp:
             
         # Nếu vượt qua tất cả các bộ lọc
         return True
+    
+    def _load_projects_into_composer_combobox(self):
+        """Tải danh sách các dự án từ CSDL và điền vào Combobox của tab Soạn Truyện."""
+        try:
+            projects = self.db_manager.get_all_projects()
+            # Lưu lại map từ tên về ID để dễ tra cứu
+            self.composer_project_map = {proj['name']: proj['id'] for proj in projects}
+
+            project_names = list(self.composer_project_map.keys())
+            self.composer_project_combobox['values'] = project_names
+            if project_names:
+                self.composer_project_combobox.set(project_names[0]) # Chọn dự án đầu tiên
+        except AttributeError:
+            self.log_message("Lỗi: widget 'composer_project_combobox' chưa được tạo.")
+        except Exception as e:
+            self.log_message(f"Lỗi khi tải danh sách dự án: {e}")
+
+    def _save_composer_story_to_project(self):
+        """Lưu nội dung truyện hiện tại vào "Dự án đang hoạt động"."""
+        # BƯỚC 1: KIỂM TRA XEM CÓ DỰ ÁN NÀO ĐANG HOẠT ĐỘNG KHÔNG
+        if not self.active_project_id:
+            messagebox.showwarning("Chưa có Dự án hoạt động", 
+                                "Vui lòng vào tab 'Thư viện' và chọn một dự án để làm việc trước.", 
+                                parent=self.root)
+            return
+
+        story_content = self.composer_text.get("1.0", tk.END).strip()
+        if not story_content:
+            messagebox.showwarning("Nội dung trống", "Không có nội dung truyện để lưu.", parent=self.root)
+            return
+
+        # BƯỚC 2: LƯU VÀO ĐÚNG "Dự án đang hoạt động"
+        success = self.db_manager.add_or_update_item(self.active_project_id, 'Story', story_content)
+
+        if success:
+            messagebox.showinfo("Thành công", f"Đã lưu nội dung truyện vào dự án '{self.active_project_name}' thành công!", 
+                            parent=self.root)
+            self._check_and_update_project_status_color() # GỌI HÀM KIỂM TRA MÀU SẮC
+        else:
+            messagebox.showerror("Thất bại", "Có lỗi xảy ra khi lưu truyện vào cơ sở dữ liệu.", parent=self.root)
     
     def create_assistant_tab_widgets(self):
         frame = self.assistant_tab
@@ -611,28 +755,35 @@ class TTSApp:
         self.counter_label.config(text=label_text, foreground=label_color)
         self.save_button.config(state=button_state)
     
-    # --- HOTFIX [2025-06-18 09:40]: Thêm logic lưu trữ vào CSDL cho nút "Chốt & Lưu". Thay thế toàn bộ hàm này. ---
     def save_final_version(self):
+        """
+        Lưu phiên bản cuối cùng vào "Dự án đang hoạt động" hiện tại.
+        """
+        # BƯỚC 1: KIỂM TRA XEM CÓ DỰ ÁN NÀO ĐANG HOẠT ĐỘNG KHÔNG
+        if not self.active_project_id:
+            messagebox.showwarning("Chưa có Dự án hoạt động", 
+                                "Vui lòng vào tab 'Thư viện' và chọn một dự án để làm việc trước.", 
+                                parent=self.assistant_tab)
+            return
+
         final_text = self.editor_text.get("1.0", tk.END).strip()
         if not final_text:
             messagebox.showwarning("Nội dung trống", "Không có nội dung để lưu.", parent=self.assistant_tab)
             return
 
         mode = self.assistant_mode.get()
-        char_count = len(final_text)
-        word_count = len(final_text.split())
-        line_count = len(final_text.splitlines())
-        
-        success = False
-        if mode == "title":
-            success = self.db_manager.add_final_title(final_text, char_count, word_count)
-        elif mode == "thumbnail":
-            success = self.db_manager.add_final_thumbnail(final_text, char_count, word_count, line_count)
+        item_type = "Title" if mode == "title" else "Thumbnail"
+
+        # BƯỚC 2: LƯU VÀO ĐÚNG "Dự án đang hoạt động"
+        success = self.db_manager.add_or_update_item(self.active_project_id, item_type, final_text)
 
         if success:
-            messagebox.showinfo("Thành công", f"Đã lưu phương án '{mode}' thành công!", parent=self.assistant_tab)
+            messagebox.showinfo("Thành công", f"Đã lưu '{item_type}' vào dự án '{self.active_project_name}' thành công!", 
+                            parent=self.assistant_tab)
+            self._check_and_update_project_status_color() # GỌI HÀM KIỂM TRA MÀU SẮC
             self.editor_text.delete("1.0", tk.END)
             self.update_editor_metrics(None)
+            
         else:
             messagebox.showerror("Thất bại", "Lỗi khi lưu vào cơ sở dữ liệu.", parent=self.assistant_tab)
     
@@ -684,6 +835,23 @@ class TTSApp:
             log_callback=self.log_message
         )
         
+    def reuse_assistant_content(self, content, option_type):
+        """
+        Nhận nội dung từ tab Thư viện và điền vào ô soạn thảo,
+        sau đó chuyển về tab Trợ lý Biên tập.
+        """
+        # Xác định radio button và ô text cần cập nhật
+        target_radio = self.title_radio if option_type == "Tiêu đề" else self.thumbnail_radio
+        target_text_widget = self.final_choice_text
+
+        # Cập nhật giao diện
+        target_radio.invoke() # Chọn đúng radio button
+        target_text_widget.delete("1.0", "end")
+        target_text_widget.insert("1.0", content)
+        
+        # Tự động chuyển về tab Trợ lý Biên tập (tab có chỉ số 2)
+        self.notebook.select(2)
+            
     # --- Các hàm của các tab khác (giữ nguyên, không tóm tắt) ---
     def _set_window_icon(self):
         try:
