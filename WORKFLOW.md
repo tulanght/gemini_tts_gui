@@ -60,6 +60,16 @@ Khi chuẩn bị cho một bản phát hành mới, quy trình sau phải đư�
     2.  Thay vào đó, một **dòng tóm tắt duy nhất** về thành tựu đó sẽ được thêm vào mục `## 🏆 Thành tựu đã Đạt được` ở cuối file, kèm theo phiên bản hoàn thành.
     3.  `ROADMAP.md` chỉ tập trung vào các mục tiêu "chiến lược". Các thay đổi chi tiết, "chiến thuật" vẫn thuộc về `CHANGELOG.md`.
 
+### 3.7. Quy tắc Versioning File (MỚI)
+* **Mục đích:** Để theo dõi chính xác các phiên bản hoạt động tốt của từng file, tránh nhầm lẫn khi thảo luận và truy vết.
+* **Quy tắc:** Mọi file mã nguồn (.py) và tài liệu (.md) quan trọng khi được chỉnh sửa phải có một khối bình luận ở đầu file theo định dạng sau:
+    ```python
+    # file-path: [đường dẫn tương đối của file]
+    # version: [số phiên bản, ví dụ: 2.1]
+    # last-updated: [YYYY-MM-DD]
+    # description: [Mô tả ngắn gọn về những thay đổi chính trong phiên bản này]
+    ```
+
 ## 4. Quy trình Cộng tác với Gemini AI (BẮT BUỘC)
 ### 4.1. Bước 0: Xác nhận Nhiệm vụ (Khóa an toàn)
 * **Quy tắc:** Sau mỗi yêu cầu mới từ người dùng, phản hồi **đầu tiên và duy nhất** của AI bắt buộc phải là:
@@ -76,10 +86,11 @@ Khi chuẩn bị cho một bản phát hành mới, quy trình sau phải đư�
 * **Ngoại lệ "Hotfix":** AI chỉ được phép cung cấp một đoạn code nhỏ ("hotfix") khi và chỉ khi đã hỏi và được người dùng cho phép một cách tường minh. (Ví dụ câu hỏi của AI: `Thay đổi này chỉ ảnh hưởng đến hàm X. Bạn có cho phép tôi chỉ cung cấp 'hotfix' cho hàm này không?`)
 
 ### 4.4. Bước 3: Cấu trúc Phản hồi Chuẩn của AI
-* **Quy tắc:** Mọi phản hồi cung cấp "Kế hoạch" hoặc "Gói Cập Nhật" đều phải tuân thủ cấu trúc sau để đảm bảo sự rõ ràng và có tính hành động.
+* **Quy tắc:** Mọi phản hồi cung cấp "Kế hoạch" hoặc "Gói Cập Nhật" đều phải tuân thủ cấu trúc 4 phần sau để đảm bảo sự rõ ràng và có tính hành động.
     1.  **Phần 1: Phân tích & Kế hoạch:** Trình bày phân tích và/hoặc kế hoạch thực thi chi tiết.
     2.  **Phần 2: Gói Cập Nhật Mục Tiêu (Nếu có):** Cung cấp mã nguồn hoặc nội dung cập nhật.
-    3.  **Phần 3: Hướng dẫn Hành động Tiếp theo dành cho bạn:** Chỉ rõ từng bước bạn cần làm tiếp theo (ví dụ: "Bây giờ, bạn hãy tạo nhánh mới...", "Bạn hãy áp dụng code này và chạy kiểm thử...", "Bạn hãy xem xét kế hoạch này và cho tôi biết bạn có phê duyệt không?").
+    3.  **Phần 3: Hướng dẫn Hành động Tiếp theo dành cho bạn:** Chỉ rõ từng bước bạn cần làm tiếp theo.
+    4.  **Phần 4: Kết quả Kỳ vọng & Cảnh báo:** Mô tả kết quả người dùng nên mong đợi sau khi thực hiện, và các rủi ro hoặc cảnh báo cần lưu ý.
 
 ### 4.5. Bước 4: Hướng dẫn Tích hợp và Kiểm thử
 * Phần "Hướng dẫn" của AI phải bao gồm các bước kiểm thử cụ thể.
