@@ -3,6 +3,27 @@
 Tất cả các thay đổi đáng chú ý của dự án sẽ được ghi lại tại đây.
 Dự án này tuân theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+
+---
+## [1.1.0] - 2025-07-16
+
+### ✨ Added (Tính năng mới)
+- **Hệ thống Quản lý Dự án & Thư viện:**
+    - Xây dựng tab "Thư viện" hoàn toàn mới, cho phép quản lý các dự án truyện một cách có tổ chức.
+    - Cho phép Tạo, Xóa, và Sửa tên dự án.
+    - Cho phép sửa đổi từng thành phần của dự án (Truyện, Tiêu đề, Thumbnail) một cách độc lập thông qua thao tác double-click.
+- **Tích hợp "Dự án đang hoạt động":**
+    - Thêm thanh trạng thái ở dưới cùng cửa sổ để hiển thị dự án đang được làm việc.
+    - Thêm nút "Làm việc với Dự án này" trong Thư viện để kích hoạt một dự án, tự động tải nội dung truyện vào tab "Soạn Truyện Dài".
+    - Kết nối các tab "Trợ lý Biên tập" và "Soạn Truyện Dài" để tự động lưu vào "Dự án đang hoạt động".
+- **Phản hồi Trạng thái bằng Màu sắc:**
+    - Thanh trạng thái tự động đổi màu (vàng/xanh) để phản ánh tiến độ hoàn thành của dự án đang hoạt động (đã đủ 3 thành phần hay chưa).
+
+### ♻️ Changed (Thay đổi)
+- Tái cấu trúc lại cơ sở dữ liệu (`database.py`) để chuyển từ mô hình lưu trữ riêng lẻ sang mô hình "Dự án" (một-một).
+- Thay đổi logic lưu của các tab "Trợ lý Biên tập" và "Soạn Truyện Dài" để tương thích với hệ thống dự án mới.
+
+---
 ## [1.0.4] - 2025-07-06
 
 ### Đã thêm (Added)
