@@ -119,10 +119,25 @@ class TTSApp:
 
         self.setup_ui_logging()
         self.update_voice_display(self.selected_voice_name.get())
-        self.notebook.pack(expand=True, fill="both", padx=5, pady=5)
+ 
+       
         self.update_word_count()
         
+        self.active_project_status = tk.StringVar(value="Trạng thái: Chưa có dự án nào đang hoạt động.")
+        # --- Cấu hình layout grid cho cửa sổ chính ---
+        self.root.rowconfigure(0, weight=1) # Hàng 0 (chứa notebook) sẽ mở rộng theo chiều dọc
+        self.root.columnconfigure(0, weight=1) # Cột 0 sẽ mở rộng theo chiều ngang
 
+        # Đặt notebook vào hàng 0, co giãn theo cả 4 hướng
+        self.notebook.grid(row=0, column=0, sticky="nsew")
+
+        # --- Thanh trạng thái (MỚI) ---
+        status_bar_frame = ttk.Frame(self.root, style="Card.TFrame", padding=5)
+        # Đặt thanh trạng thái vào hàng 1, chỉ co giãn theo chiều ngang
+        status_bar_frame.grid(row=1, column=0, sticky="ew", ipady=2)
+
+        status_label = ttk.Label(status_bar_frame, textvariable=self.active_project_status, anchor="w")
+        status_label.pack(fill="x", expand=True) # Dùng pack bên trong frame này là ổn
     
     def setup_ui_logging(self):
         """Tạo và thêm handler để hiển thị log trên giao diện."""
