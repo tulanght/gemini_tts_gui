@@ -1,5 +1,5 @@
-# main_app.py - show_thumbnail_preview
-# v3.0 - 2025-07-12: Sửa lại hàm save_final_version để lưu vào hệ thống "Dự án" mới.
+# file-path: src/gemini_tts_app/main_app.py (chỉ phần chỉnh sửa)
+# v4.0 - 2025-07-15: Thêm bộ chọn dự án và nút lưu vào tab Soạn Truyện Dài.
 import tkinter as tk
 from tkinter import ttk, scrolledtext, filedialog, messagebox
 import threading
@@ -138,6 +138,8 @@ class TTSApp:
 
         status_label = ttk.Label(status_bar_frame, textvariable=self.active_project_status, anchor="w")
         status_label.pack(fill="x", expand=True) # Dùng pack bên trong frame này là ổn
+        
+        self._load_projects_into_composer_combobox()
     
     def setup_ui_logging(self):
         """Tạo và thêm handler để hiển thị log trên giao diện."""
@@ -172,6 +174,23 @@ class TTSApp:
         # 2. Giữ lại NÚT MỞ PANEL: Đây là nút duy nhất để bạn kích hoạt bảng điều khiển
         self.toggle_panel_button = ttk.Button(frame, text="Mở Bảng điều khiển Viết truyện", command=self.toggle_composer_panel, style="Accent.TButton")
         self.toggle_panel_button.grid(row=1, column=0, pady=(10,0))
+        
+        # --- KHUNG CHỌN DỰ ÁN VÀ LƯU VÀO CSDL (MỚI) ---
+        project_frame = ttk.LabelFrame(frame, text="Lưu vào Thư viện", padding=10)
+        project_frame.grid(row=2, column=0, sticky="ew", padx=0, pady=(10,0))
+        project_frame.columnconfigure(1, weight=1)
+
+        ttk.Label(project_frame, text="Chọn Dự án:").grid(row=0, column=0, padx=(0,5), sticky="w")
+
+        self.composer_project_combobox = ttk.Combobox(project_frame, state="readonly", width=40)
+        self.composer_project_combobox.grid(row=0, column=1, padx=5, sticky="ew")
+
+        save_to_db_button = ttk.Button(project_frame, text="Lưu truyện vào Dự án", style="Accent.TButton", command=self._save_composer_story_to_project)
+        save_to_db_button.grid(row=0, column=2, padx=5)
+
+        # Chúng ta có thể thêm một nút tải lại danh sách nếu cần
+        # reload_button = ttk.Button(project_frame, text="Tải lại", command=self._load_projects_into_composer_combobox)
+        # reload_button.grid(row=0, column=3, padx=5)
         
     def toggle_clipboard_monitoring(self):
         """Bật hoặc tắt chế độ theo dõi clipboard."""
@@ -364,6 +383,7 @@ class TTSApp:
         if self.floating_panel and self.floating_panel.winfo_exists():
             self.floating_panel.destroy()
         self.root.destroy()
+        
     # --- Hàm mới để kiểm tra nội dung clipboard ---
     def _is_valid_story_chunk(self, text: str) -> bool:
         """
@@ -387,6 +407,47 @@ class TTSApp:
             
         # Nếu vượt qua tất cả các bộ lọc
         return True
+    
+    def _load_projects_into_composer_combobox(self):
+        """Tải danh sách các dự án từ CSDL và điền vào Combobox của tab Soạn Truyện."""
+        try:
+            projects = self.db_manager.get_all_projects()
+            # Lưu lại map từ tên về ID để dễ tra cứu
+            self.composer_project_map = {proj['name']: proj['id'] for proj in projects}
+
+            project_names = list(self.composer_project_map.keys())
+            self.composer_project_combobox['values'] = project_names
+            if project_names:
+                self.composer_project_combobox.set(project_names[0]) # Chọn dự án đầu tiên
+        except AttributeError:
+            self.log_message("Lỗi: widget 'composer_project_combobox' chưa được tạo.")
+        except Exception as e:
+            self.log_message(f"Lỗi khi tải danh sách dự án: {e}")
+
+    def _save_composer_story_to_project(self):
+        """Lưu nội dung truyện hiện tại vào dự án đã chọn trong Combobox."""
+        selected_project_name = self.composer_project_combobox.get()
+        if not selected_project_name:
+            messagebox.showwarning("Chưa chọn Dự án", "Vui lòng chọn một dự án để lưu.", parent=self.root)
+            return
+
+        story_content = self.composer_text.get("1.0", tk.END).strip()
+        if not story_content:
+            messagebox.showwarning("Nội dung trống", "Không có nội dung truyện để lưu.", parent=self.root)
+            return
+
+        project_id = self.composer_project_map.get(selected_project_name)
+        if not project_id:
+            messagebox.showerror("Lỗi", "Không tìm thấy ID cho dự án đã chọn.", parent=self.root)
+            return
+
+        # Luôn lưu với type là 'Story' và ghi đè nếu đã tồn tại
+        success = self.db_manager.add_or_update_item(project_id, 'Story', story_content)
+
+        if success:
+            messagebox.showinfo("Thành công", f"Đã lưu nội dung truyện vào dự án '{selected_project_name}' thành công!", parent=self.root)
+        else:
+            messagebox.showerror("Thất bại", "Có lỗi xảy ra khi lưu truyện vào cơ sở dữ liệu.", parent=self.root)
     
     def create_assistant_tab_widgets(self):
         frame = self.assistant_tab
