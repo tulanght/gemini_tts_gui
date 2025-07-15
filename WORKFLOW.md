@@ -1,6 +1,6 @@
 # QUY TRÌNH LÀM VIỆC DỰ ÁN (Project Workflow)
-# Version: 2.3
-# Last Updated: 2025-07-05
+# Version: 2.4
+# Last Updated: 2025-07-07
 
 ## 1. Checklist Khởi đầu (Bắt buộc trước mỗi nhiệm vụ mới)
 Trước khi bắt đầu bất kỳ công việc nào, người thực hiện (cả bạn và AI) phải xác nhận đã hoàn thành các mục sau:
@@ -13,6 +13,10 @@ Trước khi bắt đầu bất kỳ công việc nào, người thực hiện (
 * **Làm việc trên nhánh (Branching):** Không bao giờ làm việc trực tiếp trên `main`. Mọi thay đổi, dù là tính năng, sửa lỗi hay cập nhật tài liệu, đều phải được thực hiện trên các nhánh riêng biệt.
 * **Hợp nhất qua Pull Request (Merge via PR):** Mọi thay đổi chỉ được đưa vào `main` thông qua một quy trình Pull Request có xem xét (review).
 * **AI là Cộng tác viên:** Gemini AI được xem như một lập trình viên cộng tác cao cấp, có trách nhiệm tuân thủ nghiêm ngặt toàn bộ quy trình được định nghĩa trong tài liệu này.
+
+### **2.1. Ghi phiên bản Tài liệu (MỚI)**
+* Đối với các file tài liệu quy trình và kế hoạch cốt lõi (`WORKFLOW.md`, `ROADMAP.md`, `TECHNICAL_NOTES.md`), mỗi lần có sự thay đổi quan trọng, người chỉnh sửa có trách nhiệm cập nhật số phiên bản và ngày tháng ở đầu file để tiện theo dõi.
+* Đối với các file mã nguồn (`.py`), không cần thêm thông tin này vì Git đã quản lý phiên bản.
 
 ## 3. Quy trình làm việc với Git & Môi trường
 ### 3.1. Đặt tên nhánh
@@ -48,6 +52,13 @@ Khi chuẩn bị cho một bản phát hành mới, quy trình sau phải đư�
 3.  **Tạo nhánh Release:** Tạo một nhánh mới với tên theo phiên bản, ví dụ: `release/v1.0.2`.
 4.  **Cập nhật Tài liệu:** Trên nhánh này, cập nhật `CHANGELOG.md` và `README.md` với số phiên bản mới.
 5.  **Hợp nhất:** Tạo Pull Request để hợp nhất nhánh release vào `main`.
+
+### **3.6. Quy trình Cập nhật Roadmap (MỚI)**
+* **Mục đích:** Để `ROADMAP.md` luôn phản ánh đúng các mục tiêu tương lai và ghi nhận các thành tựu đã đạt được mà không bị lộn xộn.
+* **Quy trình:**
+    1.  Khi một giai đoạn hoặc một mục tiêu lớn trong `ROADMAP.md` được hoàn thành, mục đó sẽ được **xóa bỏ** khỏi phần kế hoạch.
+    2.  Thay vào đó, một **dòng tóm tắt duy nhất** về thành tựu đó sẽ được thêm vào mục `## 🏆 Thành tựu đã Đạt được` ở cuối file, kèm theo phiên bản hoàn thành.
+    3.  `ROADMAP.md` chỉ tập trung vào các mục tiêu "chiến lược". Các thay đổi chi tiết, "chiến thuật" vẫn thuộc về `CHANGELOG.md`.
 
 ## 4. Quy trình Cộng tác với Gemini AI (BẮT BUỘC)
 ### 4.1. Bước 0: Xác nhận Nhiệm vụ (Khóa an toàn)

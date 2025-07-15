@@ -15,97 +15,61 @@ class DatabaseManager:
         data_dir = user_data_dir(APP_NAME_CONST, APP_AUTHOR_CONST)
         os.makedirs(data_dir, exist_ok=True)
         self.db_path = os.path.join(data_dir, db_name)
-        self.create_tables()
-
-    def get_connection(self):
+        self.conn = None
         try:
-            conn = sqlite3.connect(self.db_path)
-            conn.row_factory = sqlite3.Row
-            return conn
+            self.conn = sqlite3.connect(self.db_path)
+            self.create_tables()
         except sqlite3.Error as e:
-            print(f"Lỗi kết nối CSDL: {e}")
-            return None
+            print(f"Database connection error: {e}")
 
     def create_tables(self):
-        try:
-            with self.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS projects (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        name TEXT NOT NULL UNIQUE,
-                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-                    )
-                """)
-                cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS project_items (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        project_id INTEGER NOT NULL,
-                        type TEXT NOT NULL, -- 'Story', 'Title', 'Thumbnail'
-                        content TEXT NOT NULL,
-                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
-                        UNIQUE(project_id, type)
-                    )
-                """)
-                conn.commit()
-        except sqlite3.Error as e:
-            print(f"Lỗi tạo bảng: {e}")
-
-    def create_project(self, name):
-        sql = "INSERT OR IGNORE INTO projects (name) VALUES (?)"
-        try:
-            with self.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute(sql, (name,))
-                conn.commit()
-                cursor.execute("SELECT id FROM projects WHERE name = ?", (name,))
-                project = cursor.fetchone()
-                return project['id'] if project else None
-        except sqlite3.Error as e:
-            print(f"Lỗi tạo/lấy dự án: {e}")
-            return None
-
-    def add_or_update_item(self, project_id, item_type, content):
-        sql = """
-            INSERT INTO project_items (project_id, type, content) VALUES (?, ?, ?)
-            ON CONFLICT(project_id, type) DO UPDATE SET 
-            content = excluded.content,
-            timestamp = CURRENT_TIMESTAMP;
         """
-        try:
-            with self.get_connection() as conn:
-                conn.cursor().execute(sql, (project_id, item_type, content))
-                conn.commit()
-            return True
-        except sqlite3.Error as e:
-            print(f"Lỗi thêm/cập nhật thành phần: {e}")
+        Tạo các bảng cần thiết nếu chúng chưa tồn tại.
+        """
+        if not self.conn:
+            return
+        
+        cursor = self.conn.cursor()
+        # Bảng cho các tiêu đề đã chốt
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS final_titles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title_text TEXT NOT NULL,
+                char_count INTEGER NOT NULL,
+                word_count INTEGER NOT NULL,
+                timestamp TEXT NOT NULL
+            )
+        """)
+        
+        # Bảng cho các text thumbnail đã chốt
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS final_thumbnails (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                thumbnail_text TEXT NOT NULL,
+                char_count INTEGER NOT NULL,
+                word_count INTEGER NOT NULL,
+                line_count INTEGER NOT NULL,
+                timestamp TEXT NOT NULL
+            )
+        """)
+        self.conn.commit()
+        cursor.close()
+
+    def add_final_title(self, title_text, char_count, word_count):
+        """
+        Thêm một tiêu đề đã chốt vào cơ sở dữ liệu.
+        """
+        if not self.conn:
             return False
-
-    def get_all_projects(self):
-        sql = "SELECT id, name, timestamp FROM projects ORDER BY timestamp DESC"
+        
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        sql = '''INSERT INTO final_titles(title_text, char_count, word_count, timestamp)
+                 VALUES(?,?,?,?)'''
         try:
-            with self.get_connection() as conn:
-                return conn.cursor().execute(sql).fetchall()
-        except sqlite3.Error as e:
-            print(f"Lỗi lấy danh sách dự án: {e}")
-            return []
-
-    def get_items_for_project(self, project_id):
-        sql = "SELECT id, type, content FROM project_items WHERE project_id = ?"
-        try:
-            with self.get_connection() as conn:
-                return conn.cursor().execute(sql, (project_id,)).fetchall()
-        except sqlite3.Error as e:
-            print(f"Lỗi lấy các thành phần của dự án: {e}")
-            return []
-
-    def update_project_name(self, project_id, new_name):
-        sql = "UPDATE projects SET name = ? WHERE id = ?"
-        try:
-            with self.get_connection() as conn:
-                conn.cursor().execute(sql, (new_name, project_id))
-                conn.commit()
+            cursor = self.conn.cursor()
+            cursor.execute(sql, (title_text, char_count, word_count, timestamp))
+            self.conn.commit()
+            cursor.close()
             return True
         except sqlite3.Error as e:
             if "UNIQUE constraint failed" in str(e):
@@ -113,15 +77,30 @@ class DatabaseManager:
             else:
                 print(f"Lỗi cập nhật tên dự án: {e}")
             return False
-            
-    def delete_project(self, project_id):
-        sql = "DELETE FROM projects WHERE id = ?"
+
+    def add_final_thumbnail(self, thumbnail_text, char_count, word_count, line_count):
+        """
+        Thêm một text thumbnail đã chốt vào cơ sở dữ liệu.
+        """
+        if not self.conn:
+            return False
+
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        sql = '''INSERT INTO final_thumbnails(thumbnail_text, char_count, word_count, line_count, timestamp)
+                 VALUES(?,?,?,?,?)'''
         try:
-            with self.get_connection() as conn:
-                conn.execute("PRAGMA foreign_keys = ON")
-                conn.cursor().execute(sql, (project_id,))
-                conn.commit()
+            cursor = self.conn.cursor()
+            cursor.execute(sql, (thumbnail_text, char_count, word_count, line_count, timestamp))
+            self.conn.commit()
+            cursor.close()
             return True
         except sqlite3.Error as e:
             print(f"Lỗi xóa dự án: {e}")
             return False
+
+    def close(self):
+        """
+        Đóng kết nối CSDL khi ứng dụng thoát.
+        """
+        if self.conn:
+            self.conn.close()
