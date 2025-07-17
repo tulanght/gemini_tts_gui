@@ -1,7 +1,9 @@
-# file-path: src/gemini_tts_app/main_app.py (chỉ phần chỉnh sửa)
-# v5.1 - 2025-07-15: Sửa lại hàm lưu truyện để kết nối với "Dự án đang hoạt động".
+# file-path: src/gemini_tts_app/main_app.py
+# version: 5.2
+# last-updated: 2025-07-17
+# description: Thêm giao diện và logic hoàn chỉnh để quản lý Nhóm Dự án trong tab Settings.
 import tkinter as tk
-from tkinter import ttk, scrolledtext, filedialog, messagebox
+from tkinter import ttk, scrolledtext, filedialog, messagebox, simpledialog
 import threading
 import os
 import sys
@@ -24,7 +26,7 @@ except ImportError:
     pyperclip = None
 from .thumbnail_preview import ThumbnailPreviewWindow
 from .tts_logic import generate_tts_audio_multithreaded
-from .settings_manager import save_settings, load_settings, NUM_API_KEYS
+from .settings_manager import save_settings, load_settings, NUM_API_KEYS, load_project_groups, save_project_groups
 from .constants import (
     DEFAULT_VOICE, MIN_TEMPERATURE, MAX_TEMPERATURE,
     APP_NAME, APP_VERSION, PREDEFINED_READING_STYLES,
@@ -112,7 +114,8 @@ class TTSApp:
         self.clipboard_monitoring_thread = None
         self.is_monitoring_clipboard = False
         self.last_clipboard_content = ""
-
+        self.project_groups = self.settings.get('project_groups', [])
+        
         # Biến cho "Dự án đang hoạt động"
         self.active_project_id = None
         self.active_project_name = None
@@ -1087,6 +1090,110 @@ class TTSApp:
         self.save_settings_button.grid(row=2, column=0, padx=5, pady=15)
         ttk.Label(frame, text="Note: Settings are saved automatically on exit.").grid(row=3, column=0, padx=5, pady=5, sticky="w")
         frame.columnconfigure(0, weight=1)
+
+        self._create_gdrive_settings_widgets()
+        
+    # hotfix-version: 5.2.a
+    # hotfix-date: 2025-07-17 17:00:00
+    # hotfix-reason: Tạo giao diện quản lý Nhóm Dự án.
+    def _create_gdrive_settings_widgets(self):
+        """Tạo giao diện cho phần cài đặt Google Drive Sync."""
+        gdrive_frame = ttk.LabelFrame(self.settings_tab, text="Quản lý Nhóm Dự án (Google Drive Sync)", padding="10")
+        gdrive_frame.pack(fill="x", expand=True, padx=5, pady=(10, 5), side="top")
+        gdrive_frame.columnconfigure(0, weight=1)
+
+        tree_frame = ttk.Frame(gdrive_frame)
+        tree_frame.grid(row=0, column=0, columnspan=3, sticky="nsew", pady=(0, 10))
+        tree_frame.columnconfigure(0, weight=1)
+
+        columns = ("group_name", "folder_id", "api_key")
+        self.gdrive_group_tree = ttk.Treeview(tree_frame, columns=columns, show="headings", height=5)
+        self.gdrive_group_tree.heading("group_name", text="Tên Nhóm Dự án")
+        self.gdrive_group_tree.heading("folder_id", text="Google Drive Folder ID")
+        self.gdrive_group_tree.heading("api_key", text="Google API Key (che một phần)")
+        self.gdrive_group_tree.column("group_name", width=200)
+        self.gdrive_group_tree.column("folder_id", width=300)
+        self.gdrive_group_tree.column("api_key", width=200)
+
+        scrollbar = ttk.Scrollbar(tree_frame, orient="vertical", command=self.gdrive_group_tree.yview)
+        self.gdrive_group_tree.configure(yscroll=scrollbar.set)
+        scrollbar.pack(side="right", fill="y")
+        self.gdrive_group_tree.pack(side="left", expand=True, fill="both")
+
+        button_frame = ttk.Frame(gdrive_frame)
+        button_frame.grid(row=1, column=0, columnspan=3, sticky="w")
+
+        add_button = ttk.Button(button_frame, text="Thêm Nhóm Mới...", command=self._add_project_group)
+        add_button.pack(side="left")
+        edit_button = ttk.Button(button_frame, text="Sửa Nhóm...", command=self._edit_project_group)
+        edit_button.pack(side="left", padx=5)
+        delete_button = ttk.Button(button_frame, text="Xóa Nhóm", command=self._delete_project_group)
+        delete_button.pack(side="left", padx=5)
+
+        self._load_gdrive_groups_to_treeview()
+
+    # hotfix-version: 5.2.b
+    # hotfix-date: 2025-07-17 17:00:00
+    # hotfix-reason: Logic tải, thêm, sửa, xóa Nhóm Dự án.
+    def _load_gdrive_groups_to_treeview(self):
+        for item in self.gdrive_group_tree.get_children():
+            self.gdrive_group_tree.delete(item)
+        self.project_groups = load_project_groups()
+        for group in self.project_groups:
+            api_key_display = group.get('api_key', '')
+            if len(api_key_display) > 8:
+                api_key_display = api_key_display[:4] + "..." + api_key_display[-4:]
+            self.gdrive_group_tree.insert("", "end", values=(group.get('name', ''), group.get('folder_id', ''), api_key_display))
+
+    def _add_project_group(self):
+        name = simpledialog.askstring("Thêm Nhóm Dự án", "Nhập Tên Nhóm (ví dụ: Kênh YouTube A):", parent=self.root)
+        if not name or not name.strip(): return
+        folder_id = simpledialog.askstring("Thêm Nhóm Dự án", "Nhập Google Drive Folder ID:", parent=self.root)
+        if not folder_id or not folder_id.strip(): return
+        api_key = simpledialog.askstring("Thêm Nhóm Dự án", "Nhập Google API Key:", parent=self.root)
+        if api_key is None: return 
+
+        self.project_groups.append({'name': name, 'folder_id': folder_id, 'api_key': api_key})
+        save_project_groups(self.project_groups)
+        self._load_gdrive_groups_to_treeview()
+
+    def _edit_project_group(self):
+        selected_item = self.gdrive_group_tree.focus()
+        if not selected_item:
+            messagebox.showwarning("Chưa chọn", "Vui lòng chọn một nhóm dự án để sửa.", parent=self.root)
+            return
+
+        selected_values = self.gdrive_group_tree.item(selected_item)['values']
+        group_name_to_edit = selected_values[0]
+
+        group_to_edit = next((g for g in self.project_groups if g['name'] == group_name_to_edit), None)
+        if not group_to_edit: return
+
+        name = simpledialog.askstring("Sửa Nhóm Dự án", "Tên Nhóm:", initialvalue=group_to_edit.get('name', ''), parent=self.root)
+        if name is None: return
+        folder_id = simpledialog.askstring("Sửa Nhóm Dự án", "Google Drive Folder ID:", initialvalue=group_to_edit.get('folder_id', ''), parent=self.root)
+        if folder_id is None: return
+        api_key = simpledialog.askstring("Sửa Nhóm Dự án", "Google API Key:", initialvalue=group_to_edit.get('api_key', ''), parent=self.root)
+        if api_key is None: return
+
+        group_to_edit['name'] = name.strip()
+        group_to_edit['folder_id'] = folder_id.strip()
+        group_to_edit['api_key'] = api_key.strip()
+
+        save_project_groups(self.project_groups)
+        self._load_gdrive_groups_to_treeview()
+
+    def _delete_project_group(self):
+        selected_item = self.gdrive_group_tree.focus()
+        if not selected_item:
+            messagebox.showwarning("Chưa chọn", "Vui lòng chọn một nhóm dự án để xóa.", parent=self.root)
+            return
+
+        group_name_to_delete = self.gdrive_group_tree.item(selected_item)['values'][0]
+        if messagebox.askyesno("Xác nhận Xóa", f"Bạn có chắc chắn muốn xóa nhóm '{group_name_to_delete}' không?", parent=self.root):
+            self.project_groups = [g for g in self.project_groups if g['name'] != group_name_to_delete]
+            save_project_groups(self.project_groups)
+            self._load_gdrive_groups_to_treeview()
             
     def browse_main_output_directory(self):
         directory = filedialog.askdirectory(initialdir=self.output_dir_var.get(), title="Select Output Directory", parent=self.root)
