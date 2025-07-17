@@ -52,6 +52,7 @@ class TkinterLogHandler(logging.Handler):
         self.text_widget.after_idle(append)
 
 class TTSApp:
+    # file-path: src/gemini_tts_app/main_app.py (HÀM __init__ ĐÃ ĐƯỢC SỬA LẠI HOÀN CHỈNH)
     def __init__(self, root):
         self.root = root
         self.root.title(f"{APP_NAME} v{APP_VERSION}")
@@ -60,20 +61,31 @@ class TTSApp:
         style = ttk.Style(self.root)
         style.layout("thin.Horizontal.TProgressbar",
                     [('thin.Horizontal.TProgressbar.trough',
-                        {'children': [('thin.Horizontal.TProgressbar.pbar',
-                                        {'side': 'left', 'sticky': 'ns'})],
+                    {'children': [('thin.Horizontal.TProgressbar.pbar',
+                                    {'side': 'left', 'sticky': 'ns'})],
                         'sticky': 'nswe'})])
         style.configure("thin.Horizontal.TProgressbar", thickness=4, background=COLOR_OK, troughcolor='#E0E0E0')
+
+        # --- Cấu hình màu sắc cho thanh trạng thái ---
+        self.STATUS_COLOR_INCOMPLETE = "#FFF9C4" # Vàng nhạt
+        self.STATUS_COLOR_COMPLETE = "#C8E6C9"   # Xanh lá nhạt
+        style.configure("Incomplete.TFrame", background=self.STATUS_COLOR_INCOMPLETE)
+        style.configure("Complete.TFrame", background=self.STATUS_COLOR_COMPLETE)
 
         self.db_manager = DatabaseManager()
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.settings = load_settings()
-        
+
         self.voice_display_list = [f"{v['name']} ({v['gender']}) - {v['description']}" for v in GEMINI_TTS_VOICES_DETAILED]
         self.voice_name_list = [v['name'] for v in GEMINI_TTS_VOICES_DETAILED]
-        
+
+        # --- KHỞI TẠO CÁC BIẾN (VARIABLES) ---
+
+        # Biến cho Settings
         self.api_key_vars = [tk.StringVar(value=self.settings.get(f"api_key_{i+1}", "")) for i in range(NUM_API_KEYS)]
         self.api_label_vars = [tk.StringVar(value=self.settings.get(f"label_{i+1}", f"API Key {i+1}")) for i in range(NUM_API_KEYS)]
+
+        # Biến cho TTS
         self.selected_voice_name = tk.StringVar(value=self.settings.get("default_voice", DEFAULT_VOICE))
         self.selected_voice_display = tk.StringVar() 
         self.temperature_var = tk.DoubleVar(value=self.settings.get("temperature", DEFAULT_TEMPERATURE))
@@ -81,7 +93,17 @@ class TTSApp:
         self.words_per_chunk_var = tk.IntVar(value=self.settings.get("max_words_per_part", 1000))
         self.output_dir_var = tk.StringVar(value=self.settings.get("save_dir", os.path.expanduser("~")))
         self.story_name_var = tk.StringVar(value="MyStory")
-        self.reading_style_prompt_var = tk.StringVar(value=PREDEFINED_READING_STYLES[0])
+
+        # Biến cho Đa ngôn ngữ (PHẢI ĐƯỢC ĐỊNH NGHĨA TRƯỚC)
+        self.languages = {"Tiếng Việt": "vi", "English": "en"}
+        self.selected_language = tk.StringVar(value="Tiếng Việt")
+
+        # Khởi tạo Reading Style dựa trên ngôn ngữ mặc định
+        default_lang_key = self.languages[self.selected_language.get()]
+        default_style = PREDEFINED_READING_STYLES.get(default_lang_key, [""])[0]
+        self.reading_style_prompt_var = tk.StringVar(value=default_style)
+
+        # Biến cho các trạng thái khác
         self.last_saved_output_dir = None
         self.thread_status_labels = []
         self._full_options_text = []
@@ -90,14 +112,21 @@ class TTSApp:
         self.clipboard_monitoring_thread = None
         self.is_monitoring_clipboard = False
         self.last_clipboard_content = ""
-      
+
+        # Biến cho "Dự án đang hoạt động"
+        self.active_project_id = None
+        self.active_project_name = None
+        self.active_project_status = tk.StringVar(value="Trạng thái: Chưa có dự án nào đang hoạt động.")
+
+        # --- KHỞI TẠO GIAO DIỆN UI ---
         self._set_window_icon()
         self.notebook = ttk.Notebook(root)
-        
+
+        # Tạo các tab
         self.main_tab = ttk.Frame(self.notebook, padding="10")
         self.notebook.add(self.main_tab, text="Text-to-Speech")
         self.create_main_tab_widgets()
-        
+
         self.assistant_tab = ttk.Frame(self.notebook, padding="10")
         self.notebook.add(self.assistant_tab, text="Trợ Lý Biên Tập")
         self.create_assistant_tab_widgets()
@@ -105,54 +134,32 @@ class TTSApp:
         self.composer_tab = ttk.Frame(self.notebook, padding="10")
         self.notebook.add(self.composer_tab, text="Soạn Truyện Dài")
         self.create_composer_tab_widgets()
-        
-         # --- Khởi tạo Tab Thư viện từ module riêng ---
+
         library_tab = LibraryTab(self.notebook, self.db_manager, self)
         self.notebook.add(library_tab, text="Thư viện")
-        # ---------------------------------------------
-
-        self.notebook.pack(expand=True, fill="both")
 
         self.settings_tab = ttk.Frame(self.notebook, padding="10")
         self.notebook.add(self.settings_tab, text="Settings")
         self.create_settings_tab_widgets()
 
-        self.setup_ui_logging()
-        self.update_voice_display(self.selected_voice_name.get())
- 
-       
-        self.update_word_count()
-        
-        self.active_project_status = tk.StringVar(value="Trạng thái: Chưa có dự án nào đang hoạt động.")
-        # --- Cấu hình layout grid cho cửa sổ chính ---
-        self.root.rowconfigure(0, weight=1) # Hàng 0 (chứa notebook) sẽ mở rộng theo chiều dọc
-        self.root.columnconfigure(0, weight=1) # Cột 0 sẽ mở rộng theo chiều ngang
+        # --- SẮP XẾP LAYOUT CHÍNH ---
+        self.root.rowconfigure(0, weight=1)
+        self.root.columnconfigure(0, weight=1)
 
-        # Đặt notebook vào hàng 0, co giãn theo cả 4 hướng
         self.notebook.grid(row=0, column=0, sticky="nsew")
 
-        # --- Thanh trạng thái (MỚI) ---
-        self.status_bar_frame = ttk.Frame(self.root, padding=5) # Bỏ style mặc định
+        self.status_bar_frame = ttk.Frame(self.root, padding=5)
         self.status_bar_frame.grid(row=1, column=0, sticky="ew", ipady=2)
 
         status_label = ttk.Label(self.status_bar_frame, textvariable=self.active_project_status, anchor="w")
-        status_label.pack(fill="x", expand=True) # Dùng pack bên trong frame này là ổn
-        
-        self._load_projects_into_composer_combobox()
-        
-        # Thêm vào trong hàm __init__
-        self.active_project_id = None
-        self.active_project_name = None
-        
-        
-        # --- Cấu hình màu sắc cho thanh trạng thái ---
-        self.STATUS_COLOR_INCOMPLETE = "#FFF9C4" # Vàng nhạt
-        self.STATUS_COLOR_COMPLETE = "#C8E6C9"   # Xanh lá nhạt
-        self.STATUS_COLOR_DEFAULT = self.root.cget('bg') # Lấy màu nền mặc định
+        status_label.pack(fill="x", expand=True)
 
-        style = ttk.Style()
-        style.configure("Incomplete.TFrame", background=self.STATUS_COLOR_INCOMPLETE)
-        style.configure("Complete.TFrame", background=self.STATUS_COLOR_COMPLETE)
+        # --- CÁC HÀM KHỞI TẠO CUỐI CÙNG ---
+        self.setup_ui_logging()
+        self.update_voice_display(self.selected_voice_name.get())
+        self.update_word_count()
+        self._load_projects_into_composer_combobox()
+        self._on_language_change() # Tải các reading styles mặc định
     
     def setup_ui_logging(self):
         """Tạo và thêm handler để hiển thị log trên giao diện."""
@@ -866,7 +873,7 @@ class TTSApp:
         except Exception as e:
             self.log_message(f"Error setting window icon: {e}")
 
-    # --- KHÔI PHỤC CÁC HÀM ---
+    # file-path: src/gemini_tts_app/main_app.py (HÀM ĐÃ ĐƯỢC CẬP NHẬT HOÀN CHỈNH)
     def create_main_tab_widgets(self):
         frame = self.main_tab
         frame.rowconfigure(0, weight=3); frame.rowconfigure(1, weight=0); frame.rowconfigure(2, weight=0); 
@@ -879,7 +886,7 @@ class TTSApp:
         self.main_text_input = scrolledtext.ScrolledText(input_text_frame, wrap=tk.WORD, height=10)
         self.main_text_input.grid(row=0, column=0, sticky="nsew")
         self.main_text_input.bind("<KeyRelease>", self.update_word_count)
-        
+
         count_frame = ttk.Frame(input_text_frame)
         count_frame.grid(row=1, column=0, sticky="ew", pady=(5,0), padx=5)
         self.main_word_count_label = ttk.Label(count_frame, text="Ký tự: 0 | Từ: 0 | Dự kiến chunks: 0")
@@ -889,7 +896,8 @@ class TTSApp:
 
         reading_style_frame = ttk.LabelFrame(frame, text="Reading Style Prompt (Select or Type Custom)", padding="10")
         reading_style_frame.grid(row=1, column=0, sticky="ew", padx=5, pady=5)
-        self.reading_style_combobox = ttk.Combobox(reading_style_frame, textvariable=self.reading_style_prompt_var, values=PREDEFINED_READING_STYLES, height=10)
+        # SỬA LẠI: Không gán giá trị cứng "values" ở đây nữa
+        self.reading_style_combobox = ttk.Combobox(reading_style_frame, textvariable=self.reading_style_prompt_var, height=10)
         self.reading_style_combobox.pack(fill="x", expand=True, padx=5, pady=5)
 
         settings_container_frame = ttk.Frame(frame)
@@ -899,30 +907,38 @@ class TTSApp:
         gen_settings_frame = ttk.LabelFrame(settings_container_frame, text="Generation Settings", padding="10")
         gen_settings_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
         gen_settings_frame.columnconfigure(1, weight=1)
-        
-        ttk.Label(gen_settings_frame, text="Select Voice:").grid(row=0, column=0, sticky="w", pady=2)
+
+        # === THÊM MỚI: BỘ CHỌN NGÔN NGỮ ===
+        ttk.Label(gen_settings_frame, text="Ngôn ngữ:").grid(row=0, column=0, sticky="w", pady=2)
+        self.lang_combobox = ttk.Combobox(gen_settings_frame, textvariable=self.selected_language, values=list(self.languages.keys()), state="readonly")
+        self.lang_combobox.grid(row=0, column=1, columnspan=2, sticky="ew", pady=2)
+        self.lang_combobox.bind("<<ComboboxSelected>>", self._on_language_change)
+        # ==================================
+
+        # Cập nhật lại số thứ tự hàng (row) cho các widget bên dưới
+        ttk.Label(gen_settings_frame, text="Select Voice:").grid(row=1, column=0, sticky="w", pady=2)
         self.voice_dropdown = ttk.Combobox(gen_settings_frame, textvariable=self.selected_voice_display, values=self.voice_display_list, state="readonly")
-        self.voice_dropdown.grid(row=0, column=1, columnspan=2, sticky="ew", pady=2)
+        self.voice_dropdown.grid(row=1, column=1, columnspan=2, sticky="ew", pady=2)
         self.voice_dropdown.bind('<<ComboboxSelected>>', self.on_voice_selected)
 
-        ttk.Label(gen_settings_frame, text="Temperature:").grid(row=1, column=0, sticky="w", pady=2)
+        ttk.Label(gen_settings_frame, text="Temperature:").grid(row=2, column=0, sticky="w", pady=2)
         self.temp_scale = ttk.Scale(gen_settings_frame, from_=MIN_TEMPERATURE, to=MAX_TEMPERATURE, variable=self.temperature_var, orient=tk.HORIZONTAL, command=lambda v: self.temp_scale_val_label.config(text=f"{float(v):.2f}"))
-        self.temp_scale.grid(row=1, column=1, sticky="ew", pady=2)
+        self.temp_scale.grid(row=2, column=1, sticky="ew", pady=2)
         self.temp_scale_val_label = ttk.Label(gen_settings_frame, text=f"{self.temperature_var.get():.2f}", width=4)
-        self.temp_scale_val_label.grid(row=1, column=2, sticky="w", padx=(5,0))
-        
-        ttk.Label(gen_settings_frame, text="Top P:").grid(row=2, column=0, sticky="w", pady=2)
+        self.temp_scale_val_label.grid(row=2, column=2, sticky="w", padx=(5,0))
+
+        ttk.Label(gen_settings_frame, text="Top P:").grid(row=3, column=0, sticky="w", pady=2)
         self.top_p_scale = ttk.Scale(gen_settings_frame, from_=MIN_TOP_P, to=MAX_TOP_P, variable=self.top_p_var, orient=tk.HORIZONTAL, command=lambda v: self.top_p_scale_val_label.config(text=f"{float(v):.2f}"))
-        self.top_p_scale.grid(row=2, column=1, sticky="ew", pady=2)
+        self.top_p_scale.grid(row=3, column=1, sticky="ew", pady=2)
         self.top_p_scale_val_label = ttk.Label(gen_settings_frame, text=f"{self.top_p_var.get():.2f}", width=4)
-        self.top_p_scale_val_label.grid(row=2, column=2, sticky="w", padx=(5,0))
-        
-        ttk.Label(gen_settings_frame, text="Ghi chú: Giữ Temp ở mức 1.0 để có kết quả ổn định nhất.", style="secondary.TLabel").grid(row=3, column=1, columnspan=2, padx=5, pady=(5, 0), sticky="w")
-        
+        self.top_p_scale_val_label.grid(row=3, column=2, sticky="w", padx=(5,0))
+
+        ttk.Label(gen_settings_frame, text="Ghi chú: Giữ Temp ở mức 1.0 để có kết quả ổn định nhất.", style="secondary.TLabel").grid(row=4, column=1, columnspan=2, padx=5, pady=(5, 0), sticky="w")
+
         output_settings_frame = ttk.LabelFrame(settings_container_frame, text="Output File Settings", padding="10")
         output_settings_frame.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
         output_settings_frame.columnconfigure(1, weight=1)
-        
+
         ttk.Label(output_settings_frame, text="Output Directory:").grid(row=0, column=0, sticky="w", pady=2)
         self.output_dir_entry = ttk.Entry(output_settings_frame, textvariable=self.output_dir_var)
         self.output_dir_entry.grid(row=0, column=1, sticky="ew", pady=2)
@@ -931,7 +947,7 @@ class TTSApp:
         ttk.Label(output_settings_frame, text="Story/Base Name:").grid(row=1, column=0, sticky="w", pady=2)
         self.story_name_entry = ttk.Entry(output_settings_frame, textvariable=self.story_name_var)
         self.story_name_entry.grid(row=1, column=1, columnspan=2, sticky="ew", pady=2)
-        
+
         action_buttons_frame = ttk.Frame(frame, padding="5")
         action_buttons_frame.grid(row=3, column=0, pady=(10,0), sticky="ew", padx=5)
         self.generate_button = ttk.Button(action_buttons_frame, text="Generate Voice", command=self.start_tts_thread, style="Accent.TButton")
@@ -957,7 +973,7 @@ class TTSApp:
             status_label = ttk.Label(progress_frame, text="Idle", foreground=COLOR_NORMAL, anchor="w")
             status_label.grid(row=i+1, column=1, sticky="ew", pady=1, padx=5)
             self.thread_status_labels.append(status_label)
-        
+
         log_frame = ttk.LabelFrame(frame, text="Log", padding="10")
         log_frame.grid(row=5, column=0, sticky="ewns", padx=5, pady=5)
         log_frame.rowconfigure(0, weight=1); log_frame.columnconfigure(0, weight=1)
@@ -966,6 +982,17 @@ class TTSApp:
         self.clear_log_button = ttk.Button(log_frame, text="Clear Log", command=self.clear_log_area, width=10)
         self.clear_log_button.grid(row=0, column=1, sticky="ne", padx=(2,5), pady=5)
 
+    def _on_language_change(self, event=None):
+        """Cập nhật danh sách Reading Styles khi ngôn ngữ thay đổi."""
+        lang_key = self.languages[self.selected_language.get()]
+        new_styles = PREDEFINED_READING_STYLES.get(lang_key, [])
+        self.reading_style_combobox['values'] = new_styles
+        if new_styles:
+            self.reading_style_combobox.current(0)
+        else:
+            self.reading_style_combobox.set('')
+        self.log_message(f"Đã chuyển ngôn ngữ sang: {self.selected_language.get()}")
+    
     def on_voice_selected(self, event):
         selected_index = event.widget.current()
         if 0 <= selected_index < len(self.voice_name_list):

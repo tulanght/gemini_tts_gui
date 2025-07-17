@@ -1,5 +1,5 @@
 # src/gemini_tts_app/constants.py
-# Phiên bản: constants_v7.0_assistant_setup
+# Phiên bản: constants_v8.0 - Tái cấu trúc PREDEFINED_READING_STYLES thành từ điển đa ngôn ngữ.
 APP_NAME = "Gemini Creative Suite"
 APP_VERSION = "1.0.4"
 APP_AUTHOR = "Cuong Tran" 
@@ -66,14 +66,28 @@ GEMINI_TTS_VOICES_DETAILED = [
     {'name': 'Gacrux', 'gender': 'Nam', 'description': 'Tự tin, có chiều sâu - Voice review, đánh giá sản phẩm'},
 ]
 
-PREDEFINED_READING_STYLES = [
-    # Prompt 1: Tối ưu cho truyện tâm sự gia đình, đêm khuya - Tự nhiên & Khách quan
-    "Phong cách: kể chuyện một cách bình tĩnh, khách quan. Tông giọng: đều, không quá nhấn nhá, giữ sự trung lập. Tốc độ: vừa phải, trôi chảy. Yêu cầu quan trọng: không tự ý thêm cảm xúc cá nhân vào lời kể, tránh các khoảng ngừng dài không cần thiết, đọc như một người quan sát và tường thuật lại câu chuyện.",
-    # Prompt 2: Phong cách Radio tâm sự - Ấm áp nhưng kiểm soát
-    "Vai trò: người dẫn chương trình radio tâm sự. Giọng đọc ấm, rõ ràng nhưng có kiểm soát, không bi lụy. Nhịp điệu chậm rãi, đều đặn. Ngắt nghỉ ngắn gọn tại các dấu câu. Mục tiêu là tạo sự tin cậy và đồng cảm một cách tinh tế, không phải diễn kịch.",
-    # Prompt 3: Kể chuyện đời thường - Gần gũi, không màu mè
-    "Phong cách: như đang trò chuyện, kể lại một câu chuyện đời thường. Giọng nói tự nhiên, không màu mè, không cần quá trau chuốt. Tốc độ nói nhanh hơn một chút, thể hiện sự gần gũi. Tránh sử dụng ngữ điệu của người kể chuyện chuyên nghiệp.",
-    # Prompt 4: Đọc tin tức xã hội - Rõ ràng, trung lập
-    "Phong cách của một biên tập viên đọc tin tức xã hội: rõ ràng, mạch lạc, dứt khoát. Giọng đọc giữ thái độ trung lập, không thể hiện quan điểm cá nhân. Tập trung vào việc truyền đạt thông tin một cách chính xác.",
-    ""
-]
+# Cấu trúc mới hỗ trợ đa ngôn ngữ
+PREDEFINED_READING_STYLES = {
+    'vi': [
+        # Prompt 1: Tối ưu cho truyện tâm sự gia đình, đêm khuya - Tự nhiên & Khách quan
+        "Phong cách: kể chuyện một cách bình tĩnh, khách quan. Tông giọng: đều, không quá nhấn nhá, giữ sự trung lập. Tốc độ: vừa phải, trôi chảy. Yêu cầu quan trọng: không tự ý thêm cảm xúc cá nhân vào lời kể, tránh các khoảng ngừng dài không cần thiết, đọc như một người quan sát và tường thuật lại câu chuyện.",
+        # Prompt 2: Phong cách Radio tâm sự - Ấm áp nhưng kiểm soát
+        "Vai trò: người dẫn chương trình radio tâm sự. Giọng đọc ấm, rõ ràng nhưng có kiểm soát, không bi lụy. Nhịp điệu chậm rãi, đều đặn. Ngắt nghỉ ngắn gọn tại các dấu câu. Mục tiêu là tạo sự tin cậy và đồng cảm một cách tinh tế, không phải diễn kịch.",
+        # Prompt 3: Kể chuyện đời thường - Gần gũi, không màu mè
+        "Phong cách: như đang trò chuyện, kể lại một câu chuyện đời thường. Giọng nói tự nhiên, không màu mè, không cần quá trau chuốt. Tốc độ nói nhanh hơn một chút, thể hiện sự gần gũi. Tránh sử dụng ngữ điệu của người kể chuyện chuyên nghiệp.",
+        # Prompt 4: Đọc tin tức xã hội - Rõ ràng, trung lập
+        "Phong cách của một biên tập viên đọc tin tức xã hội: rõ ràng, mạch lạc, dứt khoát. Giọng đọc giữ thái độ trung lập, không thể hiện quan điểm cá nhân. Tập trung vào việc truyền đạt thông tin một cách chính xác.",
+        "" # Lựa chọn trống
+    ],
+    'en': [
+        # Prompt 1: Optimized for narration, documentary - Clear & Objective
+        "Style: narrate in a calm, objective manner. Tone: even, without excessive emotional emphasis, maintaining neutrality. Pace: moderate and fluent. Key instruction: do not add personal feelings to the narration, avoid unnecessary long pauses, read as an observer recounting events.",
+        # Prompt 2: Audiobook storyteller style - Engaging & Warm
+        "Role: an audiobook narrator. Voice: warm, clear, and engaging. Pacing: steady, with appropriate pauses for dramatic effect at punctuation. The goal is to create an immersive listening experience.",
+        # Prompt 3: Casual conversation, vlogging style - Friendly & Natural
+        "Style: as if speaking to a friend in a vlog. Voice: natural, relaxed, not overly polished. Pace: slightly faster, conveying a sense of casual conversation. Avoid a formal, professional narrator's tone.",
+        # Prompt 4: News report style - Authoritative & Clear
+        "Style of a news anchor reporting on a serious topic: clear, articulate, and authoritative. The voice should remain neutral, focusing on delivering information accurately and without bias.",
+        "" # Empty option
+    ]
+}
