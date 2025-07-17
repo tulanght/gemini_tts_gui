@@ -1,76 +1,67 @@
 # QUY TRÌNH LÀM VIỆC DỰ ÁN (Project Workflow)
-# Version: 2.4
-# Last Updated: 2025-07-07
+# version: 3.0
+# last-updated: 2025-07-17
+# description: Tái cấu trúc, hợp nhất các quy tắc versioning và tích hợp release script.
 
 ## 1. Checklist Khởi đầu (Bắt buộc trước mỗi nhiệm vụ mới)
-Trước khi bắt đầu bất kỳ công việc nào, người thực hiện (cả bạn và AI) phải xác nhận đã hoàn thành các mục sau:
-- [ ] Đã đồng bộ với trạng thái mới nhất của nhánh `main` (`git pull origin main`).
+- [ ] Đã đồng bộ với trạng thái mới nhất của nhánh `main`.
 - [ ] Đã đọc và hiểu rõ các quy tắc trong file `WORKFLOW.md` này.
-- [ ] **Đã đọc và hiểu các giới hạn và quyết định trong file `TECHNICAL_NOTES.md` để tránh lặp lại sai lầm cũ.**
+- [ ] **Đã đọc và hiểu các giới hạn trong file `TECHNICAL_NOTES.md`**
 
 ## 2. Triết lý Chung
-* **Nguồn sự thật duy nhất (Single Source of Truth):** Nhánh `main` trên repository GitHub là nền tảng ổn định và mới nhất. Mọi công việc phải bắt đầu từ đây.
-* **Làm việc trên nhánh (Branching):** Không bao giờ làm việc trực tiếp trên `main`. Mọi thay đổi, dù là tính năng, sửa lỗi hay cập nhật tài liệu, đều phải được thực hiện trên các nhánh riêng biệt.
-* **Hợp nhất qua Pull Request (Merge via PR):** Mọi thay đổi chỉ được đưa vào `main` thông qua một quy trình Pull Request có xem xét (review).
-* **AI là Cộng tác viên:** Gemini AI được xem như một lập trình viên cộng tác cao cấp, có trách nhiệm tuân thủ nghiêm ngặt toàn bộ quy trình được định nghĩa trong tài liệu này.
-
-### **2.1. Ghi phiên bản Tài liệu (MỚI)**
-* Đối với các file tài liệu quy trình và kế hoạch cốt lõi (`WORKFLOW.md`, `ROADMAP.md`, `TECHNICAL_NOTES.md`), mỗi lần có sự thay đổi quan trọng, người chỉnh sửa có trách nhiệm cập nhật số phiên bản và ngày tháng ở đầu file để tiện theo dõi.
-* Đối với các file mã nguồn (`.py`), không cần thêm thông tin này vì Git đã quản lý phiên bản.
+* **Nguồn sự thật duy nhất:** Nhánh `main` là nền tảng ổn định.
+* **Làm việc trên nhánh:** Mọi thay đổi đều phải được thực hiện trên nhánh riêng.
+* **Hợp nhất qua Pull Request:** Mọi thay đổi chỉ được đưa vào `main` qua PR.
+* **AI là Cộng tác viên:** Gemini AI phải tuân thủ nghiêm ngặt toàn bộ quy trình này.
 
 ## 3. Quy trình làm việc với Git & Môi trường
+
 ### 3.1. Đặt tên nhánh
 * **Tính năng mới:** `feature/<ten-tinh-nang-ngan-gon>`
 * **Sửa lỗi:** `fix/<ten-loi>`
-* **Cập nhật tài liệu:** `docs/<noi-dung-cap-nhat>`
-* **Tái cấu trúc code:** `refactor/<pham-vi-tai-cau-truc>`
+* **Tài liệu/Quy trình:** `docs/<noi-dung-cap-nhat>`
+* **Tái cấu trúc:** `refactor/<pham-vi-tai-cau-truc>`
 
 ### 3.2. Quy ước Commit Message
-* Sử dụng quy ước **Conventional Commits** (`<type>(<scope>): <subject>`) để làm rõ lịch sử dự án.
-* **Ví dụ:** `feat(thumbnail): Add per-line font size`, `fix(pydub): Resolve environment issue`, `docs(workflow): Overhaul collaboration process`.
+* Sử dụng **Conventional Commits** (`<type>(<scope>): <subject>`).
 
 ### 3.3. Quy trình Pull Request (PR) & Hợp nhất
-1.  **Tạo PR:** Sau khi hoàn thành công việc trên một nhánh, sử dụng extension **GitHub Pull Request** trong VS Code để tạo một Pull Request mới, với `base` là `main`.
-2.  **Review:** Mở PR trên giao diện web của GitHub để xem xét lại toàn bộ các thay đổi.
-3.  **Hợp nhất (Merge):** Sau khi PR được phê duyệt, nhấn nút "Merge Pull Request".
-4.  **Dọn dẹp (Cleanup):** Ngay sau khi hợp nhất thành công, nhấn nút "Delete branch" để xóa nhánh đã làm việc, giữ cho repository luôn gọn gàng.
+1.  **Tạo PR:** Tạo PR với `base` là `main`.
+2.  **Review:** Xem xét lại các thay đổi.
+3.  **Hợp nhất (Merge):** Hợp nhất PR vào `main`.
+4.  **Dọn dẹp (Cleanup):** Xóa nhánh đã làm việc.
 
 ### 3.4. Quản lý Thư viện (`requirements.txt`)
-* Khi cần thêm/thay đổi thư viện, quy trình chuẩn là:
-    1.  Kích hoạt môi trường ảo (`venv`).
-    2.  Chạy `pip install <tên-thư-viện>`.
-    3.  Sau khi kiểm thử và đảm bảo chương trình hoạt động ổn định, chạy lệnh sau để cập nhật `requirements.txt`:
-        ```bash
-        pip freeze > requirements.txt
-        ```
-    4.  Sắp xếp lại file theo thứ tự A-Z (tùy chọn nhưng khuyến khích).
+* Khi thay đổi thư viện, sau khi kiểm thử ổn định, chạy `pip freeze > requirements.txt` để cập nhật.
 
-### 3.5. Quy trình Phát hành (Release)
-Khi chuẩn bị cho một bản phát hành mới, quy trình sau phải được tuân thủ:
-1.  **Kiểm tra Phiên bản:** Mở file `CHANGELOG.md` và xác định số phiên bản cuối cùng đã được phát hành.
-2.  **Quyết định Phiên bản mới:** Dựa trên các thay đổi đã được hợp nhất vào `main`, quyết định số phiên bản tiếp theo (ví dụ: `1.0.1` -> `1.0.2` cho sửa lỗi, `1.0.1` -> `1.1.0` cho tính năng mới).
-3.  **Tạo nhánh Release:** Tạo một nhánh mới với tên theo phiên bản, ví dụ: `release/v1.0.2`.
-4.  **Cập nhật Tài liệu:** Trên nhánh này, cập nhật `CHANGELOG.md` và `README.md` với số phiên bản mới.
-5.  **Hợp nhất:** Tạo Pull Request để hợp nhất nhánh release vào `main`.
-
-### **3.6. Quy trình Cập nhật Roadmap (MỚI)**
-* **Mục đích:** Để `ROADMAP.md` luôn phản ánh đúng các mục tiêu tương lai và ghi nhận các thành tựu đã đạt được mà không bị lộn xộn.
-* **Quy trình:**
-    1.  Khi một giai đoạn hoặc một mục tiêu lớn trong `ROADMAP.md` được hoàn thành, mục đó sẽ được **xóa bỏ** khỏi phần kế hoạch.
-    2.  Thay vào đó, một **dòng tóm tắt duy nhất** về thành tựu đó sẽ được thêm vào mục `## 🏆 Thành tựu đã Đạt được` ở cuối file, kèm theo phiên bản hoàn thành.
-    3.  `ROADMAP.md` chỉ tập trung vào các mục tiêu "chiến lược". Các thay đổi chi tiết, "chiến thuật" vẫn thuộc về `CHANGELOG.md`.
-
-### 3.7. Quy tắc Versioning File (MỚI)
-* **Mục đích:** Để theo dõi chính xác các phiên bản hoạt động tốt của từng file, tránh nhầm lẫn khi thảo luận và truy vết.
-* **Quy tắc:** Mọi file mã nguồn (.py) và tài liệu (.md) quan trọng khi được chỉnh sửa phải có một khối bình luận ở đầu file theo định dạng sau:
+### 3.5. Quy tắc Versioning File & Hotfix (HỢP NHẤT)
+* **Mục đích:** Để theo dõi chính xác các phiên bản của từng file, tránh nhầm lẫn.
+* **Quy tắc cho File:** Mọi file mã nguồn `.py` và tài liệu `.md` quan trọng khi được chỉnh sửa lớn phải có một khối bình luận ở đầu file theo định dạng:
     ```python
-    # file-path: [đường dẫn tương đối của file]
+    # file-path: [đường dẫn]
     # version: [số phiên bản, ví dụ: 2.1]
     # last-updated: [YYYY-MM-DD]
-    # description: [Mô tả ngắn gọn về những thay đổi chính trong phiên bản này]
+    # description: [Mô tả thay đổi]
+    ```
+* **Quy tắc cho Hotfix hàm:** Khi cung cấp một bản vá lỗi nhỏ cho một hàm, AI phải thêm khối bình luận sau ngay trên hàm đó:
+    ```python
+    # hotfix-version: [file_version].[hotfix_count].[a,b,c] (ví dụ: v2.1.a)
+    # hotfix-date: [YYYY-MM-DD HH:MM:SS]
+    # hotfix-reason: [Lý do sửa đổi]
     ```
 
+### 3.6. Quy trình Hoàn tất Tính năng & Phát hành (CẬP NHẬT)
+* **Quy tắc:** Khi một nhánh `feature/...` được xác nhận là đã hoàn thành về mặt code, quy trình sau là **bắt buộc** trước khi tạo Pull Request.
+1.  **Chạy Kịch bản Nâng cấp:** Người dùng thực thi lệnh `python scripts/release.py`.
+2.  **Nhập Phiên bản mới:** Cung cấp số hiệu phiên bản mới (ví dụ: `1.2.0` -> `1.3.0`). Kịch bản sẽ tự động cập nhật `constants.py`, `README.md`, và `CHANGELOG.md`.
+3.  **Điền Changelog:** Người dùng mở file `CHANGELOG.md` và điền chi tiết các thay đổi vào template đã được tạo sẵn.
+4.  **Commit & Hợp nhất:** Sau khi hoàn tất các bước trên, tiến hành commit và tạo Pull Request.
+
+### 3.7. Quy trình Cập nhật Roadmap
+* Khi một giai đoạn lớn được hoàn thành, mục đó sẽ được xóa bỏ khỏi kế hoạch và một dòng tóm tắt thành tựu sẽ được thêm vào cuối file.
+
 ## 4. Quy trình Cộng tác với Gemini AI (BẮT BUỘC)
+
 ### 4.1. Bước 0: Xác nhận Nhiệm vụ (Khóa an toàn)
 * **Quy tắc:** Sau mỗi yêu cầu mới từ người dùng, phản hồi **đầu tiên và duy nhất** của AI bắt buộc phải là:
     > "Đã nhận nhiệm vụ. Đã hoàn thành 'Checklist Khởi đầu'. Đang phân tích theo `WORKFLOW.md`."
@@ -83,7 +74,7 @@ Khi chuẩn bị cho một bản phát hành mới, quy trình sau phải đư�
 
 ### 4.3. Bước 2: Cung cấp Gói Cập Nhật Mục Tiêu
 * **Quy tắc về Nội dung:** Mặc định, mọi gói cập nhật mã nguồn phải là **toàn bộ nội dung của file** bị ảnh hưởng.
-* **Ngoại lệ "Hotfix":** AI chỉ được phép cung cấp một đoạn code nhỏ ("hotfix") khi và chỉ khi đã hỏi và được người dùng cho phép một cách tường minh. (Ví dụ câu hỏi của AI: `Thay đổi này chỉ ảnh hưởng đến hàm X. Bạn có cho phép tôi chỉ cung cấp 'hotfix' cho hàm này không?`)
+* **Ngoại lệ "Hotfix":** AI chỉ được phép cung cấp một đoạn code nhỏ ("hotfix") khi và chỉ khi đã hỏi và được người dùng cho phép một cách tường minh.
 
 ### 4.4. Bước 3: Cấu trúc Phản hồi Chuẩn của AI
 * **Quy tắc:** Mọi phản hồi cung cấp "Kế hoạch" hoặc "Gói Cập Nhật" đều phải tuân thủ cấu trúc 4 phần sau để đảm bảo sự rõ ràng và có tính hành động.
@@ -107,7 +98,7 @@ Nhiệm vụ: [Tên nhiệm vụ ngắn gọn]
 
 Mô tả: [Mô tả chi tiết những gì cần làm.]
 
-Bối cảnh Quan trọng: [Liệt kê thông tin nền mà AI cần biết. Ví dụ: "Chúng ta sẽ tiếp tục làm việc trên nhánh X", "Lưu ý rằng file Y vừa được thay đổi".]
+Bối cảnh Quan trọng: [Liệt kê thông tin nền mà AI cần biết.]
 
 Kết quả Mong muốn: [Mô tả sản phẩm cuối cùng trông như thế nào hoặc hoạt động ra sao.]
 
