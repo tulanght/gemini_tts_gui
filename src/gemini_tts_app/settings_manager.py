@@ -1,7 +1,7 @@
 # file-path: src/gemini_tts_app/settings_manager.py
-# version: 4.2
-# last-updated: 2025-07-17
-# description: Phiên bản hoàn chỉnh và an toàn. Kết hợp logic chống mất dữ liệu và các hàm quản lý Nhóm Dự án.
+# version: 4.4
+# last-updated: 2025-07-18
+# description: Hỗ trợ "Loại Nhóm" (Local/Google Drive) và cải tiến logic.
 
 import configparser
 import os
@@ -115,14 +115,51 @@ def load_settings() -> dict:
 
     return loaded_settings
 
-# --- CÁC HÀM MỚI ĐỂ QUẢN LÝ NHÓM DỰ ÁN ---
+# --- LOGIC QUẢN LÝ NHÓM DỰ ÁN (CẬP NHẬT) ---
 def load_project_groups() -> list:
-    """Chỉ tải danh sách các nhóm dự án từ file config."""
+    """Tải danh sách các nhóm dự án từ file config."""
     settings = load_settings()
     return settings.get('project_groups', [])
 
 def save_project_groups(groups_list: list):
-    """Chỉ lưu danh sách các nhóm dự án vào file config."""
+    """Lưu toàn bộ danh sách các nhóm dự án vào file config."""
     settings = load_settings()
     settings['project_groups'] = groups_list
     return save_settings(settings)
+
+def add_project_group(new_group: dict):
+    """Thêm một nhóm dự án mới và lưu lại."""
+    groups = load_project_groups()
+    if any(g['name'] == new_group['name'] for g in groups):
+        raise ValueError(f"Tên nhóm dự án '{new_group['name']}' đã tồn tại.")
+
+    groups.append(new_group)
+    return save_project_groups(groups)
+
+def update_project_group(original_name: str, new_data: dict):
+    """Cập nhật một nhóm dự án đã có."""
+    groups = load_project_groups()
+
+    if new_data['name'] != original_name and any(g['name'] == new_data['name'] for g in groups):
+         raise ValueError(f"Tên nhóm dự án '{new_data['name']}' đã tồn tại.")
+
+    updated = False
+    for group in groups:
+        if group['name'] == original_name:
+            group.update(new_data)
+            updated = True
+            break
+
+    if updated:
+        return save_project_groups(groups)
+    return False
+
+def delete_project_group(name_to_delete: str):
+    """Xóa một nhóm dự án khỏi danh sách và lưu lại."""
+    groups = load_project_groups()
+    original_count = len(groups)
+    groups = [g for g in groups if g['name'] != name_to_delete]
+
+    if len(groups) < original_count:
+        return save_project_groups(groups)
+    return False
