@@ -4,6 +4,11 @@ Tất cả các thay đổi đáng chú ý của dự án sẽ được ghi lạ
 Dự án này tuân theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+
+## [1.2.0] - 2025-07-17
+
+### ✨ Added (Tính năng mới)
+- **Hỗ trợ Đa ngôn ngữ cho TTS:** Trong tab Text-to-Speech, người dùng giờ đây có thể chọn ngôn ngữ (Tiếng Việt/English). Danh sách các "Reading Style Prompt" sẽ tự động cập nhật để phù hợp với ngôn ngữ đã chọn.
 ---
 ## [1.1.0] - 2025-07-16
 
