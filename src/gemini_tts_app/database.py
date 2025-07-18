@@ -1,8 +1,7 @@
 # file-path: src/gemini_tts_app/database.py
-# version: 4.1
-# last-updated: 2025-07-15
-# description: Phiên bản hoàn chỉnh cuối cùng. Hỗ trợ mô hình Dự án (một-một), chứa đầy đủ các hàm CRUD cho projects và project_items, bao gồm cả hàm update_project_item.
-
+# version: 4.3
+# last-updated: 2025-07-18
+# description: Bổ sung hàm get_project_names để hỗ trợ logic đồng bộ thông minh.
 import sqlite3
 import os
 from datetime import datetime
@@ -91,7 +90,19 @@ class DatabaseManager:
         except sqlite3.Error as e:
             print(f"Lỗi lấy danh sách dự án: {e}")
             return []
-
+    # hotfix v4.3.1 - 2025-07-18 - Thêm hàm để lấy danh sách tên tất cả các dự án.
+    def get_project_names(self):
+        """Lấy một tập hợp (set) chứa tên của tất cả các dự án hiện có."""
+        sql = "SELECT name FROM projects"
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(sql)
+                # Trả về một set để việc kiểm tra 'in' hiệu quả hơn
+                return {row['name'] for row in cursor.fetchall()}
+        except sqlite3.Error as e:
+            print(f"Lỗi khi lấy tên các dự án: {e}")
+            return set()
     def get_items_for_project(self, project_id):
         sql = "SELECT id, type, content FROM project_items WHERE project_id = ?"
         try:
