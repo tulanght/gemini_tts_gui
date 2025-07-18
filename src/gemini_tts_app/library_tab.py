@@ -73,8 +73,21 @@ class LibraryTab(ttk.Frame):
         self.add_project_button.pack(side="left")
         self.delete_project_button = ttk.Button(button_frame, text="Xóa Dự án", style="Accent.TButton", command=self._delete_selected_project)
         self.delete_project_button.pack(side="right")
-        
+        # NÚT MỚI
+        self.sync_button = ttk.Button(button_frame, text="Đồng bộ từ Google Drive", command=self._sync_from_gdrive)
+        self.sync_button.pack(side="left", padx=5)
 
+        self.delete_project_button = ttk.Button(button_frame, text="Xóa Dự án", command=self._delete_selected_project)
+        self.delete_project_button.pack(side="right")
+
+    def _sync_from_gdrive(self):
+        """Placeholder cho chức năng đồng bộ hóa từ Google Drive."""
+        messagebox.showinfo(
+            "Sắp ra mắt", 
+            "Tính năng đồng bộ hóa từ Google Drive sẽ được kết nối ở bước tiếp theo.", 
+            parent=self
+        )
+    
     def _set_active_project(self):
         """Lấy dự án được chọn và đặt nó làm dự án hoạt động trong ứng dụng chính."""
         selected_iid = self.library_tree.focus()
