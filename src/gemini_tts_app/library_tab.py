@@ -1,11 +1,13 @@
 # file-path: src/gemini_tts_app/library_tab.py
-# version: 6.1
-# last-updated: 2025-07-15
-# description: Thêm nút "Làm việc với Dự án này" để kích hoạt một dự án.
+# version: 6.5
+# last-updated: 2025-07-18
+# description: Đơn giản hóa hàm _sync_from_gdrive, chuyển logic sang main_app.
 
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog, scrolledtext
-
+from .settings_manager import load_project_groups
+from . import google_api_handler
+import threading
 class EditWindow(tk.Toplevel):
     def __init__(self, parent, title, initial_text=""):
         super().__init__(parent)
@@ -41,10 +43,26 @@ class LibraryTab(ttk.Frame):
         super().__init__(parent, padding="10", **kwargs)
         self.db_manager = db_manager
         self.main_app = main_app_instance
+        self.gdrive_groups = [] # Lưu danh sách các nhóm GDrive
+
         self._create_widgets()
         self.bind("<Visibility>", self._on_tab_visible)
 
     def _create_widgets(self):
+        
+        # --- KHUNG ĐỒNG BỘ GOOGLE DRIVE (MỚI) ---
+        sync_frame = ttk.LabelFrame(self, text="Đồng bộ hóa từ Google Drive", padding="10")
+        sync_frame.pack(fill="x", pady=(0, 10))
+        sync_frame.columnconfigure(1, weight=1)
+
+        ttk.Label(sync_frame, text="Chọn Nhóm Dự án:").grid(row=0, column=0, padx=(0,5), sticky="w")
+
+        self.gdrive_group_combobox = ttk.Combobox(sync_frame, state="readonly", width=40)
+        self.gdrive_group_combobox.grid(row=0, column=1, padx=5, sticky="ew")
+
+        self.sync_button = ttk.Button(sync_frame, text="Bắt đầu Đồng bộ", style="Accent.TButton", command=self._sync_from_gdrive)
+        self.sync_button.grid(row=0, column=2, padx=5)
+        
         tree_frame = ttk.Frame(self)
         tree_frame.pack(expand=True, fill="both", pady=(0, 10))
         columns = ("id", "name", "title", "thumbnail", "story")
@@ -77,16 +95,80 @@ class LibraryTab(ttk.Frame):
         self.sync_button = ttk.Button(button_frame, text="Đồng bộ từ Google Drive", command=self._sync_from_gdrive)
         self.sync_button.pack(side="left", padx=5)
 
-        self.delete_project_button = ttk.Button(button_frame, text="Xóa Dự án", command=self._delete_selected_project)
-        self.delete_project_button.pack(side="right")
-
+    # hotfix v6.6.1 - 2025-07-18 - Tích hợp luồng xác thực OAuth 2.0 vào chức năng đồng bộ.
     def _sync_from_gdrive(self):
-        """Placeholder cho chức năng đồng bộ hóa từ Google Drive."""
-        messagebox.showinfo(
-            "Sắp ra mắt", 
-            "Tính năng đồng bộ hóa từ Google Drive sẽ được kết nối ở bước tiếp theo.", 
-            parent=self
-        )
+        """Bắt đầu quá trình đồng bộ Google Drive trong một luồng riêng."""
+        selected_group_name = self.gdrive_group_combobox.get()
+        if not selected_group_name:
+            messagebox.showwarning("Chưa chọn Nhóm", "Vui lòng chọn một Nhóm Dự án để đồng bộ.", parent=self)
+            return
+
+        group_info = next((g for g in self.gdrive_groups if g['name'] == selected_group_name), None)
+        if not group_info or not group_info.get('folder_id'):
+            messagebox.showerror("Thiếu thông tin", "Nhóm dự án này không phải loại Google Drive hoặc thiếu Folder ID.", parent=self)
+            return
+
+        # Chạy tác vụ trong một luồng riêng để không làm treo giao diện
+        sync_thread = threading.Thread(target=self._gdrive_sync_task, args=(group_info,), daemon=True)
+        sync_thread.start()
+
+    def _gdrive_sync_task(self, group_info):
+        """Tác vụ chạy ngầm để đồng bộ hóa, xử lý logic API."""
+        group_name = group_info.get('name')
+        folder_id = group_info.get('folder_id')
+        self.main_app.log_message(f"Bắt đầu đồng bộ từ nhóm '{group_name}'...")
+
+        # 1. Lấy credentials (sẽ tự động mở trình duyệt nếu cần)
+        creds, error = google_api_handler.get_credentials()
+        if error:
+            self.main_app.log_message(f"[ERROR] Lỗi xác thực: {error}")
+            self.root.after(0, lambda: messagebox.showerror("Lỗi Xác thực", error, parent=self.root))
+            return
+
+        # 2. Lấy danh sách file bằng credentials đã xác thực
+        files, error = google_api_handler.list_files_in_folder(creds, folder_id)
+        if error:
+            self.main_app.log_message(f"[ERROR] Lỗi lấy danh sách file: {error}")
+            self.root.after(0, lambda: messagebox.showerror("Lỗi Lấy File", error, parent=self.root))
+            return
+
+        if not files:
+            self.main_app.log_message("Không tìm thấy file nào.")
+            self.root.after(0, lambda: messagebox.showinfo("Thông báo", "Không tìm thấy file Google Docs nào trong thư mục.", parent=self.root))
+            return
+
+        # 3. Xử lý từng file
+        success_count, fail_count = 0, 0
+        for file in files:
+            file_id, file_name = file.get('id'), file.get('name')
+            self.main_app.log_message(f"Đang xử lý: {file_name}...")
+
+            # Đọc nội dung file
+            content, error = google_api_handler.get_doc_content(creds, file_id)
+            if error:
+                self.main_app.log_message(f"[WARNING] Lỗi đọc file '{file_name}': {error}")
+                fail_count += 1
+                continue
+
+            # Tạo/Cập nhật dự án và các thành phần
+            project_id = self.db_manager.create_project(file_name)
+            if project_id:
+                self.db_manager.add_or_update_item(project_id, 'Title', file_name)
+                self.db_manager.add_or_update_item(project_id, 'Story', content)
+                success_count += 1
+            else:
+                self.main_app.log_message(f"[WARNING] Lỗi tạo dự án cho: {file_name}")
+                fail_count += 1
+
+        # 4. Thông báo kết quả và làm mới UI một cách an toàn
+        def update_ui_on_complete():
+            self._load_project_data()
+            messagebox.showinfo("Hoàn tất Đồng bộ",
+                              f"Đồng bộ hoàn tất!\n- Thành công: {success_count} dự án\n- Thất bại: {fail_count} dự án",
+                              parent=self)
+            self.main_app.log_message("Hoàn tất quá trình đồng bộ.")
+
+        self.root.after(0, update_ui_on_complete)
     
     def _set_active_project(self):
         """Lấy dự án được chọn và đặt nó làm dự án hoạt động trong ứng dụng chính."""
@@ -103,7 +185,18 @@ class LibraryTab(ttk.Frame):
 
 
     def _on_tab_visible(self, event):
+        self._load_gdrive_groups_to_combobox()
         self._load_project_data()
+        
+    def _load_gdrive_groups_to_combobox(self):
+        """Tải danh sách các nhóm Google Drive vào Combobox."""
+        all_groups = load_project_groups()
+        self.gdrive_groups = [g for g in all_groups if g.get('type') == 'Google Drive']
+
+        group_names = [g['name'] for g in self.gdrive_groups]
+        self.gdrive_group_combobox['values'] = group_names
+        if group_names:
+            self.gdrive_group_combobox.set(group_names[0])
 
     def _load_project_data(self):
         selected_iid = self.library_tree.focus()
