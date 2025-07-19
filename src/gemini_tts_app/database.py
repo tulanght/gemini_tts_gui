@@ -1,8 +1,7 @@
 # file-path: src/gemini_tts_app/database.py
-# version: 4.1
-# last-updated: 2025-07-15
-# description: Phiên bản hoàn chỉnh cuối cùng. Hỗ trợ mô hình Dự án (một-một), chứa đầy đủ các hàm CRUD cho projects và project_items, bao gồm cả hàm update_project_item.
-
+# version: 4.4
+# last-updated: 2025-07-18
+# description: Thêm cột 'source_group' và các hàm hỗ trợ để liên kết dự án với nhóm nguồn.
 import sqlite3
 import os
 from datetime import datetime
@@ -26,7 +25,7 @@ class DatabaseManager:
         except sqlite3.Error as e:
             print(f"Lỗi kết nối CSDL: {e}")
             return None
-
+    # hotfix v4.4.1 - 2025-07-18 - Thêm cột source_group vào bảng projects.
     def create_tables(self):
         try:
             with self.get_connection() as conn:
@@ -35,7 +34,8 @@ class DatabaseManager:
                     CREATE TABLE IF NOT EXISTS projects (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         name TEXT NOT NULL UNIQUE,
-                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        source_group TEXT -- Cột mới để lưu tên nhóm nguồn
                     )
                 """)
                 cursor.execute("""
@@ -52,13 +52,14 @@ class DatabaseManager:
                 conn.commit()
         except sqlite3.Error as e:
             print(f"Lỗi tạo bảng: {e}")
-
-    def create_project(self, name):
-        sql = "INSERT OR IGNORE INTO projects (name) VALUES (?)"
+    # hotfix v4.4.2 - 2025-07-18 - Cập nhật hàm create_project để lưu source_group.
+    def create_project(self, name, source_group=None):
+        """Tạo một dự án mới và trả về ID của nó, có thể kèm theo nhóm nguồn."""
+        sql = "INSERT OR IGNORE INTO projects (name, source_group) VALUES (?, ?)"
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute(sql, (name,))
+                cursor.execute(sql, (name, source_group))
                 conn.commit()
                 cursor.execute("SELECT id FROM projects WHERE name = ?", (name,))
                 project = cursor.fetchone()
@@ -91,7 +92,19 @@ class DatabaseManager:
         except sqlite3.Error as e:
             print(f"Lỗi lấy danh sách dự án: {e}")
             return []
-
+    # hotfix v4.3.1 - 2025-07-18 - Thêm hàm để lấy danh sách tên tất cả các dự án.
+    def get_project_names(self):
+        """Lấy một tập hợp (set) chứa tên của tất cả các dự án hiện có."""
+        sql = "SELECT name FROM projects"
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(sql)
+                # Trả về một set để việc kiểm tra 'in' hiệu quả hơn
+                return {row['name'] for row in cursor.fetchall()}
+        except sqlite3.Error as e:
+            print(f"Lỗi khi lấy tên các dự án: {e}")
+            return set()
     def get_items_for_project(self, project_id):
         sql = "SELECT id, type, content FROM project_items WHERE project_id = ?"
         try:
@@ -137,4 +150,19 @@ class DatabaseManager:
             return True
         except sqlite3.Error as e:
             print(f"Lỗi xóa dự án: {e}")
+            return False
+        
+    # hotfix v4.4.3 - 2025-07-18 - Thêm hàm xóa tất cả các dự án thuộc một nhóm.
+    def delete_projects_by_group(self, group_name):
+        """Xóa tất cả các dự án được tạo từ một nhóm nguồn cụ thể."""
+        sql = "DELETE FROM projects WHERE source_group = ?"
+        try:
+            with self.get_connection() as conn:
+                conn.execute("PRAGMA foreign_keys = ON")
+                cursor = conn.cursor()
+                cursor.execute(sql, (group_name,))
+                conn.commit()
+                return True
+        except sqlite3.Error as e:
+            print(f"Lỗi xóa các dự án theo nhóm: {e}")
             return False
