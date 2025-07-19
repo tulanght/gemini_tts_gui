@@ -1,7 +1,7 @@
 # file-path: src/gemini_tts_app/main_app.py
-# version: 5.3
+# version: 5.5
 # last-updated: 2025-07-18
-# description: Hỗ trợ "Loại Nhóm" (Local/Gdrive), sửa lỗi nút Save All Settings.
+# description: Hoàn thiện logic đồng bộ GDrive bằng phương pháp an toàn (root.after).   ``
 import tkinter as tk
 from tkinter import ttk, scrolledtext, filedialog, messagebox, simpledialog
 import threading
@@ -38,7 +38,7 @@ from .constants import (
 from .utils import get_resource_path
 from .database import DatabaseManager
 from .library_tab import LibraryTab
-
+from . import google_api_handler
 class TkinterLogHandler(logging.Handler):
     def __init__(self, text_widget):
         super().__init__()
@@ -1133,13 +1133,90 @@ class TTSApp:
         button_frame.grid(row=1, column=0, columnspan=3, sticky="w")
         add_button = ttk.Button(button_frame, text="Thêm Nhóm Mới...", command=self._add_project_group)
         add_button.pack(side="left")
+        auth_button = ttk.Button(button_frame, text="Kết nối với Google", style="Accent.TButton", command=self._authenticate_google)
+        auth_button.pack(side="left", padx=(20, 0))
         edit_button = ttk.Button(button_frame, text="Sửa Nhóm...", command=self._edit_project_group)
         edit_button.pack(side="left", padx=5)
         delete_button = ttk.Button(button_frame, text="Xóa Nhóm", command=self._delete_project_group)
         delete_button.pack(side="left", padx=5)
 
         self._load_gdrive_groups_to_treeview()
+    
+    # hotfix v5.5.1 - 2025-07-18 - Hoàn thiện logic đồng bộ GDrive an toàn.
+    def start_gdrive_sync(self, group_info):
+        """Bắt đầu quá trình đồng bộ Google Drive trong một luồng riêng."""
+        sync_thread = threading.Thread(target=self._gdrive_sync_task, args=(group_info,), daemon=True)
+        sync_thread.start()
 
+    def _gdrive_sync_task(self, group_info):
+        """Tác vụ chạy ngầm để đồng bộ hóa."""
+        group_name = group_info.get('name')
+        folder_id = group_info.get('folder_id')
+        self.log_message(f"Bắt đầu đồng bộ từ nhóm '{group_name}'...")
+
+        creds, error = google_api_handler.get_credentials()
+        if error:
+            self.log_message(f"[ERROR] Lỗi xác thực: {error}")
+            self.root.after(0, lambda: messagebox.showerror("Lỗi Xác thực", error, parent=self.root))
+            return
+
+        files, error = google_api_handler.list_files_in_folder(creds, folder_id)
+        if error:
+            self.log_message(f"[ERROR] Lỗi lấy danh sách file: {error}")
+            self.root.after(0, lambda: messagebox.showerror("Lỗi Lấy File", error, parent=self.root))
+            return
+
+        if not files:
+            self.log_message("Không tìm thấy file nào.")
+            self.root.after(0, lambda: messagebox.showinfo("Thông báo", "Không tìm thấy file Google Docs nào trong thư mục.", parent=self.root))
+            return
+
+        success_count, fail_count = 0, 0
+        for file in files:
+            file_id, file_name = file.get('id'), file.get('name')
+            self.log_message(f"Đang xử lý: {file_name}...")
+
+            content, error = google_api_handler.get_doc_content(creds, file_id)
+            if error:
+                self.log_message(f"[WARNING] Lỗi đọc file '{file_name}': {error}")
+                fail_count += 1
+                continue
+
+            project_id = self.db_manager.create_project(file_name)
+            if project_id:
+                self.db_manager.add_or_update_item(project_id, 'Title', file_name)
+                self.db_manager.add_or_update_item(project_id, 'Story', content)
+                success_count += 1
+            else:
+                self.log_message(f"[WARNING] Lỗi tạo dự án cho: {file_name}")
+                fail_count += 1
+
+        # Sử dụng root.after để lên lịch cập nhật UI trên luồng chính
+        def update_ui_on_complete():
+            self.library_tab._load_project_data()
+            messagebox.showinfo("Hoàn tất Đồng bộ",
+                            f"Đồng bộ hoàn tất!\n- Thành công: {success_count} dự án\n- Thất bại: {fail_count} dự án",
+                            parent=self.root)
+            self.log_message("Hoàn tất quá trình đồng bộ.")
+
+        self.root.after(0, update_ui_on_complete)
+    
+    # hotfix v5.4.2 - 2025-07-18 - Thêm logic xử lý xác thực Google trong một luồng riêng.
+    def _authenticate_google(self):
+        """Chạy quá trình xác thực Google trong một luồng riêng để không làm treo UI."""
+        def auth_task():
+            self.log_message("Bắt đầu quá trình xác thực với Google...")
+            creds, error = google_api_handler.get_credentials()
+            if error:
+                self.log_message(f"[ERROR] Xác thực thất bại: {error}")
+                messagebox.showerror("Xác thực Thất bại", error, parent=self.root)
+            elif creds:
+                self.log_message("Xác thực thành công! Đã sẵn sàng để đồng bộ.")
+                messagebox.showinfo("Xác thực Thành công", "Kết nối với Google thành công! Bây giờ bạn có thể sử dụng tính năng đồng bộ.", parent=self.root)
+
+        # Chạy tác vụ trong một thread riêng
+        auth_thread = threading.Thread(target=auth_task, daemon=True)
+        auth_thread.start()
     def _load_gdrive_groups_to_treeview(self):
         for item in self.gdrive_group_tree.get_children():
             self.gdrive_group_tree.delete(item)

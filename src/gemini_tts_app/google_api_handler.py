@@ -1,58 +1,65 @@
-
 # file-path: src/gemini_tts_app/google_api_handler.py
-# version: 1.0
+# version: 2.1
 # last-updated: 2025-07-18
-# description: Module xử lý logic kết nối và lấy dữ liệu từ Google Drive/Docs API.
+# description: Cập nhật các hàm để sử dụng credentials OAuth 2.0.
 
+import os.path
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-def build_drive_service(api_key):
-    """Xây dựng một đối tượng service để tương tác với Google Drive API."""
-    try:
-        return build('drive', 'v3', developerKey=api_key)
-    except Exception as e:
-        print(f"Lỗi khi xây dựng Drive service: {e}")
-        return None
+SCOPES = [
+    "https://www.googleapis.com/auth/drive.readonly",
+    "https://www.googleapis.com/auth/documents.readonly"
+]
+TOKEN_PATH = "token.json"
+CREDENTIALS_PATH = "credentials.json"
 
-def build_docs_service(api_key):
-    """Xây dựng một đối tượng service để tương tác với Google Docs API."""
-    try:
-        return build('docs', 'v1', developerKey=api_key)
-    except Exception as e:
-        print(f"Lỗi khi xây dựng Docs service: {e}")
-        return None
+def get_credentials():
+    creds = None
+    if os.path.exists(TOKEN_PATH):
+        creds = Credentials.from_authorized_user_file(TOKEN_PATH, SCOPES)
 
-def list_files_in_folder(drive_service, folder_id):
-    """Lấy danh sách các file Google Docs trong một thư mục cụ thể."""
-    if not drive_service:
-        return None, "Drive service không hợp lệ."
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            try:
+                creds.refresh(Request())
+            except Exception as e:
+                print(f"Lỗi khi làm mới token: {e}")
+                creds = None
+        else:
+            try:
+                flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_PATH, SCOPES)
+                creds = flow.run_local_server(port=0)
+            except FileNotFoundError:
+                return None, "Không tìm thấy file credentials.json."
+            except Exception as e:
+                return None, f"Lỗi trong quá trình xác thực: {e}"
 
+        if creds:
+            with open(TOKEN_PATH, "w") as token:
+                token.write(creds.to_json())
+    return creds, None
+
+def list_files_in_folder(creds, folder_id):
     try:
+        service = build('drive', 'v3', credentials=creds)
         query = f"'{folder_id}' in parents and mimeType='application/vnd.google-apps.document' and trashed=false"
-        results = drive_service.files().list(
-            q=query,
-            pageSize=100, # Giới hạn 100 file mỗi lần gọi
-            fields="nextPageToken, files(id, name)"
+        results = service.files().list(
+            q=query, pageSize=100, fields="files(id, name)"
         ).execute()
-
-        files = results.get('files', [])
-        return files, None
+        return results.get('files', []), None
     except HttpError as error:
-        print(f"Lỗi API khi lấy danh sách file: {error}")
-        return None, f"Lỗi API: {error.reason}"
+        return None, f"Lỗi API Drive: {error.reason}"
     except Exception as e:
-        print(f"Lỗi không xác định khi lấy danh sách file: {e}")
-        return None, "Lỗi không xác định."
+        return None, f"Lỗi không xác định: {e}"
 
-
-def get_doc_content(docs_service, document_id):
-    """Đọc và trả về nội dung text của một file Google Doc."""
-    if not docs_service:
-        return None, "Docs service không hợp lệ."
-
+def get_doc_content(creds, document_id):
     try:
-        document = docs_service.documents().get(documentId=document_id).execute()
+        service = build('docs', 'v1', credentials=creds)
+        document = service.documents().get(documentId=document_id).execute()
         content = document.get('body').get('content')
 
         full_text = ""
@@ -63,8 +70,6 @@ def get_doc_content(docs_service, document_id):
                         full_text += para_element.get('textRun').get('content')
         return full_text, None
     except HttpError as error:
-        print(f"Lỗi API khi đọc nội dung file: {error}")
-        return None, f"Lỗi API: {error.reason}"
+        return None, f"Lỗi API Docs: {error.reason}"
     except Exception as e:
-        print(f"Lỗi không xác định khi đọc nội dung file: {e}")
-        return None, "Lỗi không xác định."
+        return None, f"Lỗi không xác định: {e}"
