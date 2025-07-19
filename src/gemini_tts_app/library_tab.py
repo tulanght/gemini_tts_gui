@@ -9,6 +9,10 @@ import threading
 
 from . import google_api_handler
 from .settings_manager import load_project_groups
+import threading
+
+from . import google_api_handler
+from .settings_manager import load_project_groups
 
 class EditWindow(tk.Toplevel):
     def __init__(self, parent, title, initial_text=""):
@@ -48,6 +52,9 @@ class LibraryTab(ttk.Frame):
         self.gdrive_groups = []
         self.sync_mode = tk.StringVar(value="add_new")
 
+        self.gdrive_groups = []
+        self.sync_mode = tk.StringVar(value="add_new")
+
         self._create_widgets()
         self._configure_status_colors() # Cấu hình màu sắc
         self.bind("<Visibility>", self._on_tab_visible)
@@ -58,6 +65,24 @@ class LibraryTab(ttk.Frame):
         self.library_tree.tag_configure('completed', background='#C8E6C9')   # Xanh lá nhạt
 
     def _create_widgets(self):
+        # --- KHUNG ĐỒNG BỘ GOOGLE DRIVE ---
+        sync_frame = ttk.LabelFrame(self, text="Đồng bộ hóa từ Google Drive", padding="10")
+        sync_frame.pack(fill="x", pady=(0, 10))
+        sync_frame.columnconfigure(1, weight=1)
+
+        ttk.Label(sync_frame, text="Chọn Nhóm Dự án:").grid(row=0, column=0, padx=(0,5), sticky="w")
+        self.gdrive_group_combobox = ttk.Combobox(sync_frame, state="readonly", width=40)
+        self.gdrive_group_combobox.grid(row=0, column=1, padx=5, sticky="ew")
+        
+        options_frame = ttk.Frame(sync_frame)
+        options_frame.grid(row=1, column=1, pady=(5,0), sticky="w")
+        ttk.Radiobutton(options_frame, text="Chỉ thêm mới", variable=self.sync_mode, value="add_new").pack(side="left", padx=(0, 10))
+        ttk.Radiobutton(options_frame, text="Làm mới toàn bộ (Ghi đè)", variable=self.sync_mode, value="overwrite").pack(side="left")
+
+        self.sync_button = ttk.Button(sync_frame, text="Bắt đầu Đồng bộ", style="Accent.TButton", command=self._sync_from_gdrive)
+        self.sync_button.grid(row=0, column=2, rowspan=2, padx=5, sticky="ns")
+
+        # --- KHUNG DANH SÁCH DỰ ÁN ---
         # --- KHUNG ĐỒNG BỘ GOOGLE DRIVE ---
         sync_frame = ttk.LabelFrame(self, text="Đồng bộ hóa từ Google Drive", padding="10")
         sync_frame.pack(fill="x", pady=(0, 10))
@@ -104,6 +129,8 @@ class LibraryTab(ttk.Frame):
         self.library_tree.pack(side="left", expand=True, fill="both")
 
         # --- KHUNG NÚT BẤM ---
+
+        # --- KHUNG NÚT BẤM ---
         button_frame = ttk.Frame(self)
         button_frame.pack(fill="x", pady=(10,0))
         self.work_on_project_button = ttk.Button(button_frame, text="Làm việc với Dự án này", style="Accent.TButton", command=self._set_active_project)
@@ -111,11 +138,95 @@ class LibraryTab(ttk.Frame):
         self.add_project_button = ttk.Button(button_frame, text="Tạo Dự án Mới...", command=self._create_new_project)
         self.add_project_button.pack(side="left")
         self.delete_project_button = ttk.Button(button_frame, text="Xóa Dự án", command=self._delete_selected_project)
+        self.delete_project_button = ttk.Button(button_frame, text="Xóa Dự án", command=self._delete_selected_project)
         self.delete_project_button.pack(side="right")
 
     def _on_tab_visible(self, event):
         self._load_gdrive_groups_to_combobox()
+        self._load_gdrive_groups_to_combobox()
         self._load_project_data()
+
+    def _load_gdrive_groups_to_combobox(self):
+        """Tải danh sách các nhóm Google Drive vào Combobox."""
+        all_groups = load_project_groups()
+        self.gdrive_groups = [g for g in all_groups if g.get('type') == 'Google Drive']
+        group_names = [g['name'] for g in self.gdrive_groups]
+        self.gdrive_group_combobox['values'] = group_names
+        if group_names:
+            self.gdrive_group_combobox.set(group_names[0])
+
+    def _sync_from_gdrive(self):
+        """Bắt đầu quá trình đồng bộ Google Drive trong một luồng riêng."""
+        selected_group_name = self.gdrive_group_combobox.get()
+        if not selected_group_name:
+            messagebox.showwarning("Chưa chọn Nhóm", "Vui lòng chọn một Nhóm Dự án để đồng bộ.", parent=self)
+            return
+        group_info = next((g for g in self.gdrive_groups if g['name'] == selected_group_name), None)
+        if not group_info or not group_info.get('folder_id'):
+            messagebox.showerror("Thiếu thông tin", "Nhóm dự án này không phải loại Google Drive hoặc thiếu Folder ID.", parent=self)
+            return
+        sync_thread = threading.Thread(target=self._gdrive_sync_task, args=(group_info,), daemon=True)
+        sync_thread.start()
+
+    def _gdrive_sync_task(self, group_info):
+        """Tác vụ chạy ngầm để đồng bộ hóa với logic thông minh."""
+        group_name = group_info.get('name')
+        folder_id = group_info.get('folder_id')
+        sync_mode = self.sync_mode.get()
+        self.main_app.log_message(f"Bắt đầu đồng bộ từ nhóm '{group_name}' (Chế độ: {sync_mode})...")
+
+        creds, error = google_api_handler.get_credentials()
+        if error:
+            self.main_app.root.after(0, lambda: messagebox.showerror("Lỗi Xác thực", error, parent=self.main_app.root))
+            return
+
+        if sync_mode == "overwrite":
+            self.main_app.log_message(f"Đang xóa các dự án cũ thuộc nhóm '{group_name}'...")
+            self.db_manager.delete_projects_by_group(group_name)
+            self.main_app.log_message("Đã xóa xong.")
+
+        existing_projects = self.db_manager.get_project_names()
+
+        files, error = google_api_handler.list_files_in_folder(creds, folder_id)
+        if error:
+            self.main_app.root.after(0, lambda: messagebox.showerror("Lỗi Lấy File", error, parent=self.main_app.root))
+            return
+        if not files:
+            self.main_app.root.after(0, lambda: messagebox.showinfo("Thông báo", "Không tìm thấy file Google Docs nào trong thư mục.", parent=self.main_app.root))
+            return
+
+        success_count, fail_count, skipped_count = 0, 0, 0
+        for file in files:
+            file_name = file.get('name')
+            if sync_mode == "add_new" and file_name in existing_projects:
+                skipped_count += 1
+                continue
+            
+            self.main_app.log_message(f"Đang xử lý: {file_name}...")
+            file_id = file.get('id')
+            content, error = google_api_handler.get_doc_content(creds, file_id)
+            if error:
+                self.main_app.log_message(f"[WARNING] Lỗi đọc file '{file_name}': {error}")
+                fail_count += 1
+                continue
+            
+            project_id = self.db_manager.create_project(file_name, source_group=group_name)
+            if project_id:
+                self.db_manager.add_or_update_item(project_id, 'Title', file_name)
+                self.db_manager.add_or_update_item(project_id, 'Story', content)
+                success_count += 1
+            else:
+                self.main_app.log_message(f"[WARNING] Lỗi tạo dự án cho: {file_name}")
+                fail_count += 1
+        
+        def update_ui_on_complete():
+            self._load_project_data()
+            messagebox.showinfo("Hoàn tất Đồng bộ",
+                              f"Đồng bộ hoàn tất!\n- Thành công: {success_count}\n- Thất bại: {fail_count}\n- Bỏ qua: {skipped_count}",
+                              parent=self.main_app.root)
+            self.main_app.log_message("Hoàn tất quá trình đồng bộ.")
+        
+        self.main_app.root.after(0, update_ui_on_complete)
 
     def _load_gdrive_groups_to_combobox(self):
         """Tải danh sách các nhóm Google Drive vào Combobox."""
@@ -265,6 +376,7 @@ class LibraryTab(ttk.Frame):
         project_id = self.library_tree.focus()
         if not project_id: return
         
+        
         column_id = self.library_tree.identify_column(event.x)
         project_id = int(project_id)
         
@@ -298,6 +410,7 @@ class LibraryTab(ttk.Frame):
                 current_content = item['content']
                 break
         
+        
         dialog = EditWindow(self, f"Chỉnh sửa {item_type} cho Dự án ID: {project_id}", current_content)
         new_content = dialog.show()
         if new_content is not None and new_content != current_content:
@@ -305,6 +418,7 @@ class LibraryTab(ttk.Frame):
                 self._load_project_data()
             else:
                 messagebox.showerror("Lỗi", f"Không thể cập nhật {item_type}.")
+        
         
     def _create_new_project(self):
         project_name = simpledialog.askstring("Tạo Dự án Mới", "Nhập tên cho dự án mới:")
@@ -314,6 +428,7 @@ class LibraryTab(ttk.Frame):
                 self._load_project_data()
             else:
                 messagebox.showerror("Lỗi", "Tên dự án có thể đã tồn tại hoặc có lỗi xảy ra.")
+    
     
     def _delete_selected_project(self):
         selected_iid = self.library_tree.focus()

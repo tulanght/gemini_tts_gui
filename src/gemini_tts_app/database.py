@@ -103,6 +103,7 @@ class DatabaseManager:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(sql, (name, source_group))
+                cursor.execute(sql, (name, source_group))
                 conn.commit()
                 cursor.execute("SELECT id FROM projects WHERE name = ?", (name,))
                 project = cursor.fetchone()
