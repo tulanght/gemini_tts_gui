@@ -75,3 +75,7 @@ logs/
 # Database files
 *.sqlite3
 *.db
+
+# Other files
+credentials.json
+token.json
