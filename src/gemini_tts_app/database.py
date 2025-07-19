@@ -16,6 +16,7 @@ class DatabaseManager:
         os.makedirs(data_dir, exist_ok=True)
         self.db_path = os.path.join(data_dir, db_name)
         self.create_tables()
+        self._run_migrations() # Chạy kiểm tra và cập nhật CSDL
 
     def get_connection(self):
         try:
@@ -25,24 +26,43 @@ class DatabaseManager:
         except sqlite3.Error as e:
             print(f"Lỗi kết nối CSDL: {e}")
             return None
-    # hotfix v4.4.1 - 2025-07-18 - Thêm cột source_group vào bảng projects.
+
+    # hotfix v4.5.1 - 2025-07-19 - Thêm hàm di chuyển CSDL để thêm cột source_group.
+    def _run_migrations(self):
+        """Kiểm tra và áp dụng các thay đổi cấu trúc cho CSDL đã tồn tại."""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                # Kiểm tra xem cột 'source_group' đã tồn tại trong bảng 'projects' chưa
+                cursor.execute("PRAGMA table_info(projects)")
+                columns = [info['name'] for info in cursor.fetchall()]
+
+                if 'source_group' not in columns:
+                    print("Phát hiện CSDL cũ, đang tiến hành nâng cấp...")
+                    cursor.execute("ALTER TABLE projects ADD COLUMN source_group TEXT")
+                    conn.commit()
+                    print("Nâng cấp CSDL thành công: Đã thêm cột 'source_group'.")
+        except sqlite3.Error as e:
+            print(f"Lỗi trong quá trình di chuyển CSDL: {e}")
+
     def create_tables(self):
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
+                # Cập nhật cấu trúc bảng mới nhất
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS projects (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         name TEXT NOT NULL UNIQUE,
                         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                        source_group TEXT -- Cột mới để lưu tên nhóm nguồn
+                        source_group TEXT
                     )
                 """)
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS project_items (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         project_id INTEGER NOT NULL,
-                        type TEXT NOT NULL, -- 'Story', 'Title', 'Thumbnail'
+                        type TEXT NOT NULL,
                         content TEXT NOT NULL,
                         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
                         FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
@@ -52,9 +72,8 @@ class DatabaseManager:
                 conn.commit()
         except sqlite3.Error as e:
             print(f"Lỗi tạo bảng: {e}")
-    # hotfix v4.4.2 - 2025-07-18 - Cập nhật hàm create_project để lưu source_group.
+
     def create_project(self, name, source_group=None):
-        """Tạo một dự án mới và trả về ID của nó, có thể kèm theo nhóm nguồn."""
         sql = "INSERT OR IGNORE INTO projects (name, source_group) VALUES (?, ?)"
         try:
             with self.get_connection() as conn:
