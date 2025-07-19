@@ -1,7 +1,7 @@
 # file-path: src/gemini_tts_app/library_tab.py
-# version: 7.0
-# last-updated: 2025-07-18
-# description: Hoàn thiện tính năng Đồng bộ Thông minh với các tùy chọn và logic kiểm tra trùng lặp.
+# version: 8.0
+# last-updated: 2025-07-19
+# description: Hoàn thiện Hệ thống Trạng thái Dự án với Menu Chuột phải và tô màu hàng.
 
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog, scrolledtext
@@ -49,7 +49,13 @@ class LibraryTab(ttk.Frame):
         self.sync_mode = tk.StringVar(value="add_new")
 
         self._create_widgets()
+        self._configure_status_colors() # Cấu hình màu sắc
         self.bind("<Visibility>", self._on_tab_visible)
+
+    def _configure_status_colors(self):
+        """Định nghĩa các tag màu cho TreeView."""
+        self.library_tree.tag_configure('in_progress', background='#FFF9C4') # Vàng nhạt
+        self.library_tree.tag_configure('completed', background='#C8E6C9')   # Xanh lá nhạt
 
     def _create_widgets(self):
         # --- KHUNG ĐỒNG BỘ GOOGLE DRIVE ---
@@ -72,19 +78,26 @@ class LibraryTab(ttk.Frame):
         # --- KHUNG DANH SÁCH DỰ ÁN ---
         tree_frame = ttk.Frame(self)
         tree_frame.pack(expand=True, fill="both", pady=(0, 10))
-        columns = ("id", "name", "title", "thumbnail", "story")
+        
+        columns = ("id", "status", "name", "title", "thumbnail", "story")
         self.library_tree = ttk.Treeview(tree_frame, columns=columns, show="headings")
         self.library_tree.heading("id", text="ID")
+        self.library_tree.heading("status", text="Trạng thái")
         self.library_tree.heading("name", text="Tên Dự án")
         self.library_tree.heading("title", text="Tiêu đề")
         self.library_tree.heading("thumbnail", text="Kịch bản Thumbnail")
         self.library_tree.heading("story", text="Nội dung Truyện")
-        self.library_tree.column("id", width=50, anchor="center", stretch=False)
+
+        self.library_tree.column("id", width=40, anchor="center", stretch=False)
+        self.library_tree.column("status", width=100, anchor="center")
         self.library_tree.column("name", width=200)
         self.library_tree.column("title", width=250)
         self.library_tree.column("thumbnail", width=250)
         self.library_tree.column("story", width=200)
+
         self.library_tree.bind("<Double-1>", self._on_project_double_click)
+        self.library_tree.bind("<Button-3>", self._show_status_menu)
+
         scrollbar = ttk.Scrollbar(tree_frame, orient="vertical", command=self.library_tree.yview)
         self.library_tree.configure(yscroll=scrollbar.set)
         scrollbar.pack(side="right", fill="y")
@@ -199,8 +212,18 @@ class LibraryTab(ttk.Frame):
                 if item['type'] in content_map:
                     content_map[item['type']] = item['content']
             story_preview = (content_map['Story'][:100] + '...') if len(content_map['Story']) > 100 else content_map['Story']
-            self.library_tree.insert("", "end", iid=project['id'], values=(
-                project['id'], project['name'], 
+            
+            status = project['status']
+            tag = ''
+            if status == 'Đang làm dở':
+                tag = 'in_progress'
+            elif status == 'Đã làm':
+                tag = 'completed'
+
+            self.library_tree.insert("", "end", iid=project['id'], tags=(tag,), values=(
+                project['id'],
+                status,
+                project['name'], 
                 content_map['Title'], 
                 content_map['Thumbnail'].replace('\n', ' '), 
                 story_preview
@@ -208,6 +231,33 @@ class LibraryTab(ttk.Frame):
         if selected_iid and self.library_tree.exists(selected_iid):
             self.library_tree.focus(selected_iid)
             self.library_tree.selection_set(selected_iid)
+
+    def _show_status_menu(self, event):
+        """Hiển thị menu chuột phải để thay đổi trạng thái."""
+        iid = self.library_tree.identify_row(event.y)
+        if iid:
+            self.library_tree.selection_set(iid)
+            status_menu = tk.Menu(self, tearoff=0)
+            status_menu.add_command(
+                label="Chưa làm",
+                command=lambda: self._change_project_status(iid, "Chưa làm")
+            )
+            status_menu.add_command(
+                label="Đang làm dở",
+                command=lambda: self._change_project_status(iid, "Đang làm dở")
+            )
+            status_menu.add_command(
+                label="Đã làm",
+                command=lambda: self._change_project_status(iid, "Đã làm")
+            )
+            status_menu.post(event.x_root, event.y_root)
+
+    def _change_project_status(self, project_id, new_status):
+        """Gọi DB để cập nhật trạng thái và làm mới giao diện."""
+        if self.db_manager.update_project_status(int(project_id), new_status):
+            self._load_project_data()
+        else:
+            messagebox.showerror("Lỗi", "Không thể cập nhật trạng thái dự án.", parent=self)
 
     def _on_project_double_click(self, event):
         region = self.library_tree.identify("region", event.x, event.y)
@@ -218,11 +268,12 @@ class LibraryTab(ttk.Frame):
         column_id = self.library_tree.identify_column(event.x)
         project_id = int(project_id)
         
+        # Cập nhật map để loại bỏ cột status
         column_map = {
-            '#2': ('Tên Dự án', self._edit_project_name),
-            '#3': ('Title', self._edit_project_item),
-            '#4': ('Thumbnail', self._edit_project_item),
-            '#5': ('Story', self._edit_project_item),
+            '#3': ('Tên Dự án', self._edit_project_name),
+            '#4': ('Title', self._edit_project_item),
+            '#5': ('Thumbnail', self._edit_project_item),
+            '#6': ('Story', self._edit_project_item),
         }
 
         if column_id in column_map:
@@ -230,7 +281,7 @@ class LibraryTab(ttk.Frame):
             handler(project_id, item_type)
 
     def _edit_project_name(self, project_id, item_type=None):
-        current_name = self.library_tree.item(project_id)['values'][1]
+        current_name = self.library_tree.item(project_id)['values'][2] # Tên dự án giờ ở cột 3 (index 2)
         new_name = simpledialog.askstring("Đổi tên Dự án", "Nhập tên mới:", initialvalue=current_name)
         if new_name and new_name.strip() and new_name.strip() != current_name:
             try:
@@ -270,7 +321,7 @@ class LibraryTab(ttk.Frame):
             messagebox.showwarning("Chưa chọn", "Vui lòng chọn một dự án để xóa.")
             return
         project_id = int(selected_iid)
-        project_name = self.library_tree.item(selected_iid)['values'][1]
+        project_name = self.library_tree.item(selected_iid)['values'][2] # Tên dự án giờ ở cột 3 (index 2)
         if messagebox.askyesno("Xác nhận Xóa", f"Bạn có chắc chắn muốn xóa toàn bộ dự án '{project_name}' không?\nMọi dữ liệu liên quan sẽ bị mất vĩnh viễn."):
             if self.db_manager.delete_project(project_id):
                 self._load_project_data()
@@ -283,5 +334,5 @@ class LibraryTab(ttk.Frame):
             messagebox.showwarning("Chưa chọn", "Vui lòng chọn một dự án để bắt đầu làm việc.", parent=self)
             return
         project_id = int(selected_iid)
-        project_name = self.library_tree.item(selected_iid)['values'][1]
+        project_name = self.library_tree.item(selected_iid)['values'][2] # Tên dự án giờ ở cột 3 (index 2)
         self.main_app.set_active_project(project_id, project_name)
