@@ -110,3 +110,5 @@ websockets==15.0.1
 webvtt-py==0.5.1
 yt-dlp==2025.2.19
 zipp==3.21.0
+# --- Google API Libraries ---
+google-auth-oauthlib

@@ -1,7 +1,9 @@
-# file-path: src/gemini_tts_app/main_app.py (chỉ phần chỉnh sửa)
-# v5.1 - 2025-07-15: Sửa lại hàm lưu truyện để kết nối với "Dự án đang hoạt động".
+# file-path: src/gemini_tts_app/main_app.py
+# version: 5.5
+# last-updated: 2025-07-18
+# description: Hoàn thiện logic đồng bộ GDrive bằng phương pháp an toàn (root.after).   ``
 import tkinter as tk
-from tkinter import ttk, scrolledtext, filedialog, messagebox
+from tkinter import ttk, scrolledtext, filedialog, messagebox, simpledialog
 import threading
 import os
 import sys
@@ -24,7 +26,7 @@ except ImportError:
     pyperclip = None
 from .thumbnail_preview import ThumbnailPreviewWindow
 from .tts_logic import generate_tts_audio_multithreaded
-from .settings_manager import save_settings, load_settings, NUM_API_KEYS
+from .settings_manager import save_settings, load_settings, NUM_API_KEYS, load_project_groups, save_project_groups, add_project_group, update_project_group, delete_project_group
 from .constants import (
     DEFAULT_VOICE, MIN_TEMPERATURE, MAX_TEMPERATURE,
     APP_NAME, APP_VERSION, PREDEFINED_READING_STYLES,
@@ -36,7 +38,7 @@ from .constants import (
 from .utils import get_resource_path
 from .database import DatabaseManager
 from .library_tab import LibraryTab
-
+from . import google_api_handler
 class TkinterLogHandler(logging.Handler):
     def __init__(self, text_widget):
         super().__init__()
@@ -112,7 +114,8 @@ class TTSApp:
         self.clipboard_monitoring_thread = None
         self.is_monitoring_clipboard = False
         self.last_clipboard_content = ""
-
+        self.project_groups = self.settings.get('project_groups', [])
+        
         # Biến cho "Dự án đang hoạt động"
         self.active_project_id = None
         self.active_project_name = None
@@ -1047,10 +1050,15 @@ class TTSApp:
             messagebox.showerror("Lỗi đọc file", f"Đã có lỗi xảy ra khi đọc file:\n{e}")
             self.log_message(f"Lỗi import file: {e}")
             
+    # hotfix v5.3.1 - 2025-07-18 - Sắp xếp lại layout, tích hợp GDrive UI một cách an toàn.
     def create_settings_tab_widgets(self):
         frame = self.settings_tab
+        frame.columnconfigure(0, weight=1)
+
+        # --- Mục 1: API Key Management ---
         api_keys_frame = ttk.LabelFrame(frame, text="API Key Management", padding="10")
         api_keys_frame.grid(row=0, column=0, padx=5, pady=10, sticky="ew")
+        api_keys_frame.columnconfigure(1, weight=1)
         self.api_key_entries = [] 
         self.api_label_entries = []
         for i in range(NUM_API_KEYS):
@@ -1062,32 +1070,283 @@ class TTSApp:
             key_entry = ttk.Entry(api_keys_frame, textvariable=self.api_key_vars[i], width=50, show="*")
             key_entry.grid(row=i*2+1, column=1, columnspan=2, padx=5, pady=2, sticky="ew")
             self.api_key_entries.append(key_entry)
-        api_keys_frame.columnconfigure(1, weight=1)
 
+        # --- Mục 2: General Settings ---
         general_settings_frame = ttk.LabelFrame(frame, text="General Settings", padding="10")
         general_settings_frame.grid(row=1, column=0, padx=5, pady=10, sticky="ew")
         general_settings_frame.columnconfigure(1, weight=1)
-        
+
         ttk.Label(general_settings_frame, text="Default Voice:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
         self.settings_voice_dropdown = ttk.Combobox(general_settings_frame, textvariable=self.selected_voice_display, values=self.voice_display_list, state='readonly', width=40)
         self.settings_voice_dropdown.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
         self.settings_voice_dropdown.bind('<<ComboboxSelected>>', self.on_voice_selected)
-        
-        # --- MỚI: Thêm ô tùy chỉnh Chunk Size ---
+
         ttk.Label(general_settings_frame, text="Số từ tối đa mỗi chunk:").grid(row=1, column=0, padx=5, pady=5, sticky="w")
         self.chunk_size_entry = ttk.Entry(general_settings_frame, textvariable=self.words_per_chunk_var, width=10)
         self.chunk_size_entry.grid(row=1, column=1, padx=5, pady=5, sticky="w")
-        
+
         ttk.Label(general_settings_frame, text="Default Save Directory:").grid(row=2, column=0, padx=5, pady=5, sticky="w")
-        self.settings_save_dir_entry = ttk.Entry(general_settings_frame, textvariable=self.output_dir_var, width=40)
-        self.settings_save_dir_entry.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
-        ttk.Button(general_settings_frame, text="Browse...", command=self.browse_main_output_directory).grid(row=2, column=2, padx=5, pady=5)
-        
+        settings_save_dir_entry_frame = ttk.Frame(general_settings_frame)
+        settings_save_dir_entry_frame.grid(row=2, column=1, sticky="ew")
+        settings_save_dir_entry_frame.columnconfigure(0, weight=1)
+        self.settings_save_dir_entry = ttk.Entry(settings_save_dir_entry_frame, textvariable=self.output_dir_var)
+        self.settings_save_dir_entry.grid(row=0, column=0, sticky="ew")
+        ttk.Button(settings_save_dir_entry_frame, text="Browse...", command=self.browse_main_output_directory).grid(row=0, column=1, padx=(5,0))
+
+        # --- Mục 3: Google Drive Sync (Mới) ---
+        self._create_gdrive_settings_widgets() 
+
+        # --- Mục 4: Nút Save và Ghi chú ---
         self.save_settings_button = ttk.Button(frame, text="Save All Settings", command=self.save_app_settings, style="Accent.TButton")
-        self.save_settings_button.grid(row=2, column=0, padx=5, pady=15)
-        ttk.Label(frame, text="Note: Settings are saved automatically on exit.").grid(row=3, column=0, padx=5, pady=5, sticky="w")
-        frame.columnconfigure(0, weight=1)
-            
+        self.save_settings_button.grid(row=4, column=0, padx=5, pady=15)
+
+        ttk.Label(frame, text="Note: Settings are saved automatically on exit.").grid(row=5, column=0, padx=5, pady=5, sticky="w")
+    
+    # hotfix v5.3.2 - 2025-07-18 - Cung cấp giao diện và các hàm logic cho Quản lý Nhóm Dự án.
+    def _create_gdrive_settings_widgets(self):
+        """Tạo giao diện cho phần cài đặt Google Drive Sync."""
+        gdrive_frame = ttk.LabelFrame(self.settings_tab, text="Quản lý Nhóm Dự án", padding="10")
+        gdrive_frame.grid(row=2, column=0, padx=5, pady=10, sticky="ew")
+        gdrive_frame.columnconfigure(0, weight=1)
+
+        tree_frame = ttk.Frame(gdrive_frame)
+        tree_frame.grid(row=0, column=0, columnspan=3, sticky="nsew", pady=(0, 10))
+        tree_frame.columnconfigure(0, weight=1)
+
+        columns = ("group_name", "type", "folder_id", "api_key")
+        self.gdrive_group_tree = ttk.Treeview(tree_frame, columns=columns, show="headings", height=5)
+        self.gdrive_group_tree.heading("group_name", text="Tên Nhóm Dự án")
+        self.gdrive_group_tree.heading("type", text="Loại")
+        self.gdrive_group_tree.heading("folder_id", text="Google Drive Folder ID")
+        self.gdrive_group_tree.heading("api_key", text="Google API Key")
+        self.gdrive_group_tree.column("group_name", width=150)
+        self.gdrive_group_tree.column("type", width=100, anchor="center")
+        self.gdrive_group_tree.column("folder_id", width=250)
+        self.gdrive_group_tree.column("api_key", width=200)
+
+        scrollbar = ttk.Scrollbar(tree_frame, orient="vertical", command=self.gdrive_group_tree.yview)
+        self.gdrive_group_tree.configure(yscroll=scrollbar.set)
+        scrollbar.pack(side="right", fill="y")
+        self.gdrive_group_tree.pack(side="left", expand=True, fill="both")
+
+        button_frame = ttk.Frame(gdrive_frame)
+        button_frame.grid(row=1, column=0, columnspan=3, sticky="w")
+        add_button = ttk.Button(button_frame, text="Thêm Nhóm Mới...", command=self._add_project_group)
+        add_button.pack(side="left")
+        auth_button = ttk.Button(button_frame, text="Kết nối với Google", style="Accent.TButton", command=self._authenticate_google)
+        auth_button.pack(side="left", padx=(20, 0))
+        edit_button = ttk.Button(button_frame, text="Sửa Nhóm...", command=self._edit_project_group)
+        edit_button.pack(side="left", padx=5)
+        delete_button = ttk.Button(button_frame, text="Xóa Nhóm", command=self._delete_project_group)
+        delete_button.pack(side="left", padx=5)
+
+        self._load_gdrive_groups_to_treeview()
+    
+    # hotfix v5.5.1 - 2025-07-18 - Hoàn thiện logic đồng bộ GDrive an toàn.
+    def start_gdrive_sync(self, group_info):
+        """Bắt đầu quá trình đồng bộ Google Drive trong một luồng riêng."""
+        sync_thread = threading.Thread(target=self._gdrive_sync_task, args=(group_info,), daemon=True)
+        sync_thread.start()
+
+    def _gdrive_sync_task(self, group_info):
+        """Tác vụ chạy ngầm để đồng bộ hóa."""
+        group_name = group_info.get('name')
+        folder_id = group_info.get('folder_id')
+        self.log_message(f"Bắt đầu đồng bộ từ nhóm '{group_name}'...")
+
+        creds, error = google_api_handler.get_credentials()
+        if error:
+            self.log_message(f"[ERROR] Lỗi xác thực: {error}")
+            self.root.after(0, lambda: messagebox.showerror("Lỗi Xác thực", error, parent=self.root))
+            return
+
+        files, error = google_api_handler.list_files_in_folder(creds, folder_id)
+        if error:
+            self.log_message(f"[ERROR] Lỗi lấy danh sách file: {error}")
+            self.root.after(0, lambda: messagebox.showerror("Lỗi Lấy File", error, parent=self.root))
+            return
+
+        if not files:
+            self.log_message("Không tìm thấy file nào.")
+            self.root.after(0, lambda: messagebox.showinfo("Thông báo", "Không tìm thấy file Google Docs nào trong thư mục.", parent=self.root))
+            return
+
+        success_count, fail_count = 0, 0
+        for file in files:
+            file_id, file_name = file.get('id'), file.get('name')
+            self.log_message(f"Đang xử lý: {file_name}...")
+
+            content, error = google_api_handler.get_doc_content(creds, file_id)
+            if error:
+                self.log_message(f"[WARNING] Lỗi đọc file '{file_name}': {error}")
+                fail_count += 1
+                continue
+
+            project_id = self.db_manager.create_project(file_name)
+            if project_id:
+                self.db_manager.add_or_update_item(project_id, 'Title', file_name)
+                self.db_manager.add_or_update_item(project_id, 'Story', content)
+                success_count += 1
+            else:
+                self.log_message(f"[WARNING] Lỗi tạo dự án cho: {file_name}")
+                fail_count += 1
+
+        # Sử dụng root.after để lên lịch cập nhật UI trên luồng chính
+        def update_ui_on_complete():
+            self.library_tab._load_project_data()
+            messagebox.showinfo("Hoàn tất Đồng bộ",
+                            f"Đồng bộ hoàn tất!\n- Thành công: {success_count} dự án\n- Thất bại: {fail_count} dự án",
+                            parent=self.root)
+            self.log_message("Hoàn tất quá trình đồng bộ.")
+
+        self.root.after(0, update_ui_on_complete)
+    
+    # hotfix v5.4.2 - 2025-07-18 - Thêm logic xử lý xác thực Google trong một luồng riêng.
+    def _authenticate_google(self):
+        """Chạy quá trình xác thực Google trong một luồng riêng để không làm treo UI."""
+        def auth_task():
+            self.log_message("Bắt đầu quá trình xác thực với Google...")
+            creds, error = google_api_handler.get_credentials()
+            if error:
+                self.log_message(f"[ERROR] Xác thực thất bại: {error}")
+                messagebox.showerror("Xác thực Thất bại", error, parent=self.root)
+            elif creds:
+                self.log_message("Xác thực thành công! Đã sẵn sàng để đồng bộ.")
+                messagebox.showinfo("Xác thực Thành công", "Kết nối với Google thành công! Bây giờ bạn có thể sử dụng tính năng đồng bộ.", parent=self.root)
+
+        # Chạy tác vụ trong một thread riêng
+        auth_thread = threading.Thread(target=auth_task, daemon=True)
+        auth_thread.start()
+    def _load_gdrive_groups_to_treeview(self):
+        for item in self.gdrive_group_tree.get_children():
+            self.gdrive_group_tree.delete(item)
+        self.project_groups = load_project_groups()
+        for group in self.project_groups:
+            api_key_display = group.get('api_key', '')
+            if len(api_key_display) > 8:
+                api_key_display = api_key_display[:4] + "..." + api_key_display[-4:]
+            self.gdrive_group_tree.insert("", "end", values=(
+                group.get('name', ''), 
+                group.get('type', 'Local'),
+                group.get('folder_id', ''), 
+                api_key_display
+            ))
+
+    def _add_project_group(self):
+        name = simpledialog.askstring("Bước 1/2: Tên Nhóm", "Nhập Tên Nhóm:", parent=self.root)
+        if not name or not name.strip(): return
+
+        group_type = self._ask_group_type()
+        if not group_type: return
+
+        folder_id, api_key = "", ""
+        if group_type == "Google Drive":
+            folder_id = simpledialog.askstring("Bước 2/2: Google Drive", "Nhập Google Drive Folder ID:", parent=self.root)
+            if folder_id is None: return
+            api_key = simpledialog.askstring("Bước 2/2: Google Drive", "Nhập Google API Key:", parent=self.root)
+            if api_key is None: return
+
+        new_group = {'name': name.strip(), 'type': group_type, 'folder_id': folder_id.strip(), 'api_key': api_key.strip()}
+        try:
+            add_project_group(new_group)
+            self._load_gdrive_groups_to_treeview()
+        except ValueError as e:
+            messagebox.showerror("Lỗi", str(e), parent=self.root)
+
+    # hotfix v5.3.3 - 2025-07-18 - Hoàn thiện logic sửa và xóa Nhóm Dự án.
+    def _edit_project_group(self):
+        """Sửa thông tin của nhóm dự án được chọn."""
+        selected_item = self.gdrive_group_tree.focus()
+        if not selected_item:
+            messagebox.showwarning("Chưa chọn", "Vui lòng chọn một nhóm dự án để sửa.", parent=self.root)
+            return
+
+        # Lấy tên gốc để tìm kiếm trong danh sách
+        original_name = self.gdrive_group_tree.item(selected_item)['values'][0]
+
+        # Tìm đúng đối tượng nhóm trong danh sách self.project_groups
+        group_to_edit = next((g for g in self.project_groups if g.get('name') == original_name), None)
+        if not group_to_edit:
+            messagebox.showerror("Lỗi", "Không tìm thấy thông tin chi tiết của nhóm.", parent=self.root)
+            return
+
+        # Hỏi thông tin mới, giữ lại giá trị cũ làm mặc định
+        name = simpledialog.askstring("Sửa Nhóm Dự án", "Tên Nhóm:", initialvalue=group_to_edit.get('name', ''), parent=self.root)
+        if name is None: return # Người dùng nhấn Cancel
+
+        # Logic chọn loại nhóm
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Sửa Loại Nhóm")
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        group_type_var = tk.StringVar(value=group_to_edit.get('type', 'Local'))
+        ttk.Label(dialog, text="Chọn loại cho nhóm dự án:").pack(padx=20, pady=10)
+        ttk.Radiobutton(dialog, text="Local (Trên máy tính)", variable=group_type_var, value="Local").pack(anchor="w", padx=20)
+        ttk.Radiobutton(dialog, text="Google Drive (Đồng bộ online)", variable=group_type_var, value="Google Drive").pack(anchor="w", padx=20)
+
+        ok_selected = tk.BooleanVar(value=False)
+        def on_select():
+            ok_selected.set(True)
+            dialog.destroy()
+
+        ttk.Button(dialog, text="Chọn", command=on_select).pack(pady=10)
+        self.root.wait_window(dialog)
+
+        if not ok_selected.get(): return # Người dùng đóng dialog thay vì nhấn Chọn
+
+        group_type = group_type_var.get()
+        folder_id, api_key = group_to_edit.get('folder_id', ''), group_to_edit.get('api_key', '')
+
+        if group_type == "Google Drive":
+            folder_id = simpledialog.askstring("Sửa Nhóm Dự án", "Google Drive Folder ID:", initialvalue=folder_id, parent=self.root)
+            if folder_id is None: return
+            api_key = simpledialog.askstring("Sửa Nhóm Dự án", "Google API Key:", initialvalue=api_key, parent=self.root)
+            if api_key is None: return
+
+        # Tạo dữ liệu mới và gọi hàm logic trong settings_manager
+        new_data = {'name': name.strip(), 'type': group_type, 'folder_id': folder_id.strip(), 'api_key': api_key.strip()}
+
+        try:
+            if update_project_group(original_name, new_data):
+                self._load_gdrive_groups_to_treeview()
+        except ValueError as e:
+            messagebox.showerror("Lỗi", str(e), parent=self.root)
+
+    def _delete_project_group(self):
+        """Xóa nhóm dự án được chọn."""
+        selected_item = self.gdrive_group_tree.focus()
+        if not selected_item:
+            messagebox.showwarning("Chưa chọn", "Vui lòng chọn một nhóm dự án để xóa.", parent=self.root)
+            return
+
+        group_name_to_delete = self.gdrive_group_tree.item(selected_item)['values'][0]
+        if messagebox.askyesno("Xác nhận Xóa", f"Bạn có chắc chắn muốn xóa nhóm '{group_name_to_delete}' không?", parent=self.root):
+            if delete_project_group(group_name_to_delete):
+                self._load_gdrive_groups_to_treeview()
+            else:
+                messagebox.showerror("Lỗi", "Không thể xóa nhóm dự án.", parent=self.root)
+
+    def _ask_group_type(self):
+        """Hàm trợ giúp để mở dialog chọn loại nhóm."""
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Chọn Loại Nhóm")
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        result = tk.StringVar(value="Local")
+        ttk.Label(dialog, text="Chọn loại cho nhóm dự án:").pack(padx=20, pady=10)
+        ttk.Radiobutton(dialog, text="Local (Trên máy tính)", variable=result, value="Local").pack(anchor="w", padx=20)
+        ttk.Radiobutton(dialog, text="Google Drive (Đồng bộ online)", variable=result, value="Google Drive").pack(anchor="w", padx=20)
+
+        def on_select():
+            dialog.destroy()
+
+        ttk.Button(dialog, text="Chọn", command=on_select).pack(pady=10)
+        self.root.wait_window(dialog)
+        return result.get()
+
+
     def browse_main_output_directory(self):
         directory = filedialog.askdirectory(initialdir=self.output_dir_var.get(), title="Select Output Directory", parent=self.root)
         if directory: self.output_dir_var.set(directory); self.log_message(f"Output directory set to: {directory}")
@@ -1149,6 +1408,9 @@ class TTSApp:
             messagebox.showinfo("Settings", "Settings saved successfully!", parent=self.root)
         else:
             self.log_message("Failed to save settings."); messagebox.showerror("Error", "Failed to save settings.", parent=self.root)
+        # SỬA LỖI: Thêm dòng này để lưu danh sách nhóm dự án
+        save_project_groups(self.project_groups)
+        messagebox.showinfo("Đã lưu", "Tất cả cài đặt đã được lưu thành công.", parent=self.root)
 
     # --- HOTFIX [2025-06-18]: Sửa lỗi AttributeError do gọi sai tên biến text input. Thay thế toàn bộ hàm này. ---
     def start_tts_thread(self):
