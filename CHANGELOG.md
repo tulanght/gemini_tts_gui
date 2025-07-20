@@ -3,6 +3,33 @@
 Tất cả các thay đổi đáng chú ý của dự án sẽ được ghi lại tại đây.
 Dự án này tuân theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.0] - 2025-07-19
+
+### ✨ Added (Tính năng mới)
+- **Hệ thống Quản lý Dự án & Thư viện:**
+    - Xây dựng tab "Thư viện" hoàn toàn mới, cho phép quản lý các dự án truyện một cách có tổ chức.
+    - Cho phép Tạo, Xóa, và Sửa tên dự án.
+    - Cho phép sửa đổi từng thành phần của dự án (Truyện, Tiêu đề, Thumbnail) một cách độc lập thông qua thao tác double-click.
+- **Tích hợp "Dự án đang hoạt động":**
+    - Thêm thanh trạng thái ở dưới cùng cửa sổ để hiển thị dự án đang được làm việc.
+    - Thêm nút "Làm việc với Dự án này" trong Thư viện để kích hoạt một dự án, tự động tải nội dung truyện vào tab "Soạn Truyện Dài".
+    - Kết nối các tab "Trợ lý Biên tập" và "Soạn Truyện Dài" để tự động lưu vào "Dự án đang hoạt động".
+- **Phản hồi Trạng thái bằng Màu sắc:**
+    - Thanh trạng thái tự động đổi màu (vàng/xanh) để phản ánh tiến độ hoàn thành của dự án đang hoạt động (đã đủ 3 thành phần hay chưa).
+- **Hệ thống Trạng thái Dự án:**
+    - Thêm cột "Trạng thái" vào Thư viện.
+    - Cho phép thay đổi trạng thái (Chưa làm, Đang làm dở, Đã làm) của dự án thông qua menu chuột phải, với màu nền tương ứng.
+- **Hỗ trợ Đa ngôn ngữ cho TTS:** Trong tab Text-to-Speech, người dùng giờ đây có thể chọn ngôn ngữ (Tiếng Việt/English) và danh sách "Reading Style Prompt" sẽ tự động cập nhật.
+
+### ♻️ Changed (Thay đổi)
+- Tái cấu trúc lại cơ sở dữ liệu (`database.py`) để chuyển từ mô hình lưu trữ riêng lẻ sang mô hình "Dự án" (một-một).
+- Thay đổi logic lưu của các tab "Trợ lý Biên tập" và "Soạn Truyện Dài" để tương thích với hệ thống dự án mới.
+
+### 🐛 Fixed (Sửa lỗi)
+- Sửa nhiều lỗi liên quan đến `AttributeError` và `NameError` do bất đồng bộ mã nguồn.
+- Sửa các lỗi layout `TclError` trong các tab Settings và Thư viện.
+- Khắc phục lỗi logic nghiêm trọng gây mất dữ liệu API trong `settings_manager.py`.
+
 
 
 ## [1.2.0] - 2025-07-17
