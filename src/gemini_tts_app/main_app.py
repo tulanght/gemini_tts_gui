@@ -1,7 +1,7 @@
-# file-path: src/gemini_tts_app/main_app.py
-# version: 5.5
-# last-updated: 2025-07-18
-# description: Hoàn thiện logic đồng bộ GDrive bằng phương pháp an toàn (root.after).   ``
+# file-path: src/gemini_tts_app/main_app.py (chỉ phần thêm mới)
+# version: 5.6
+# last-updated: 2025-07-21
+# description: Thêm logic điều phối để gửi nội dung từ Thư viện sang TTS.
 import tkinter as tk
 from tkinter import ttk, scrolledtext, filedialog, messagebox, simpledialog
 import threading
@@ -214,6 +214,7 @@ class TTSApp:
         # Chúng ta có thể thêm một nút tải lại danh sách nếu cần
         # reload_button = ttk.Button(project_frame, text="Tải lại", command=self._load_projects_into_composer_combobox)
         # reload_button.grid(row=0, column=3, padx=5)
+        
     def _check_and_update_project_status_color(self):
         """Kiểm tra và cập nhật màu nền cho thanh trạng thái dựa trên tiến độ dự án."""
         if not self.active_project_id:
@@ -984,6 +985,30 @@ class TTSApp:
         self.log_area.grid(row=0, column=0, sticky="nsew", padx=(5,0), pady=5)
         self.clear_log_button = ttk.Button(log_frame, text="Clear Log", command=self.clear_log_area, width=10)
         self.clear_log_button.grid(row=0, column=1, sticky="ne", padx=(2,5), pady=5)
+    # hotfix v5.6.1 - 2025-07-21 - Thêm hàm điều phối để gửi truyện sang tab TTS.
+    def send_story_to_tts(self, project_id):
+        """
+        Lấy nội dung truyện từ một dự án và điền vào tab Text-to-Speech.
+        """
+        items = self.db_manager.get_items_for_project(project_id)
+        story_content = ""
+        for item in items:
+            if item['type'] == 'Story':
+                story_content = item['content']
+                break
+
+        if not story_content:
+            messagebox.showwarning("Không có Nội dung", "Dự án này chưa có nội dung truyện để gửi sang.", parent=self.root)
+            return
+
+        # Điền nội dung vào ô Input Text của tab TTS
+        self.main_text_input.delete("1.0", tk.END)
+        self.main_text_input.insert("1.0", story_content)
+
+        # Cập nhật lại bộ đếm từ và chuyển tab
+        self.update_word_count()
+        self.notebook.select(0) # Chuyển sang tab Text-to-Speech (chỉ số 0)
+        self.log_message(f"Đã tải nội dung truyện từ dự án ID {project_id} sang tab Text-to-Speech.")
 
     def _on_language_change(self, event=None):
         """Cập nhật danh sách Reading Styles khi ngôn ngữ thay đổi."""
