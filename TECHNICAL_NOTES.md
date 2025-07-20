@@ -44,3 +44,13 @@ Tài liệu này ghi lại những vấn đề kỹ thuật hóc búa đã gặp
     * **HỆ QUẢ:**
         * Khi người dùng chỉnh sửa cỡ chữ của một dòng cụ thể lần đầu tiên, cờ `is_edited` của dòng đó sẽ được đặt thành `True`.
         * Hàm "Cỡ chữ chung" sẽ chỉ áp dụng cho những dòng có cờ `is_edited` là `False`. Điều này tạo ra hành vi "khóa" giá trị cho các dòng đã được tinh chỉnh thủ công.
+
+---
+
+### **4. Vấn đề Kiến trúc: Di chuyển Cơ sở dữ liệu (Database Migration)**
+
+* **Bối cảnh:** Trong quá trình phát triển (nhánh `feature/project-status-system`), chúng ta đã cần thêm các cột mới (`source_group`, `status`) vào bảng `projects` đã tồn tại.
+* **Vấn đề:** Lệnh `CREATE TABLE IF NOT EXISTS` trong `database.py` không tự động cập nhật cấu trúc của một bảng đã tồn tại. Điều này dẫn đến lỗi `IndexError` hoặc `no such column` khi mã nguồn mới cố gắng truy cập vào các cột chưa tồn tại trong file CSDL cũ của người dùng.
+* **Giải pháp & Quyết định Thiết kế:**
+    * **QUYẾT ĐỊNH:** Một hàm `_run_migrations` đã được thêm vào `database.py`. Hàm này được gọi mỗi khi ứng dụng khởi động.
+    * **HỆ QUẢ:** Hàm này có trách nhiệm kiểm tra cấu trúc của các bảng hiện có (sử dụng `PRAGMA table_info`) và chạy các lệnh `ALTER TABLE ADD COLUMN` để thêm vào các cột còn thiếu. Bất kỳ thay đổi nào về cấu trúc CSDL trong tương lai đều **BẮT BUỘC** phải được xử lý thông qua cơ chế di chuyển này để đảm bảo tính tương thích ngược cho người dùng cũ.
