@@ -1,7 +1,7 @@
 # QUY TRÌNH LÀM VIỆC DỰ ÁN (Project Workflow)
-# version: 4.1
-# last-updated: 2025-07-19
-# description: Bổ sung nguyên tắc kiến trúc (SoC) và cải tiến quy tắc versioning cho hotfix.
+# version: 4.2
+# last-updated: 2025-07-21
+# description: Bổ sung "Bước 0.5: Kiểm tra Trạng thái" để tăng độ tin cậy.
 
 ## 1. Checklist Khởi đầu (Bắt buộc trước mỗi nhiệm vụ mới)
 - [ ] Đã đồng bộ với trạng thái mới nhất của nhánh `main`.
@@ -14,7 +14,7 @@
 * **Hợp nhất qua Pull Request:** Mọi thay đổi chỉ được đưa vào `main` qua PR.
 * **AI là Cộng tác viên:** Gemini AI phải tuân thủ nghiêm ngặt toàn bộ quy trình này.
 
-### 2.1. Nguyên tắc Kiến trúc: Tách bạch Trách nhiệm (MỚI)
+### 2.1. Nguyên tắc Kiến trúc: Tách bạch Trách nhiệm
 * **Mục đích:** Đảm bảo mã nguồn có tổ chức, dễ bảo trì và mở rộng.
 * **Quy tắc:**
     * **Module Giao diện (View/Controller):** Các file như `main_app.py`, `library_tab.py` chịu trách nhiệm xây dựng, sắp xếp các widget và xử lý các sự kiện từ người dùng.
@@ -71,27 +71,40 @@
 * **Quy tắc:** Sau mỗi yêu cầu mới từ người dùng, phản hồi **đầu tiên và duy nhất** của AI bắt buộc phải là:
     > "Đã nhận nhiệm vụ. Đã hoàn thành 'Checklist Khởi đầu'. Đang phân tích theo `WORKFLOW.md`."
 
-### 4.2. Bước 1: Kế hoạch Thực thi
-* **Quy tắc:** Trước khi cung cấp mã nguồn, AI phải trình bày một **"Kế hoạch Thực thi"** chi tiết.
+### 4.2. Bước 0.5: Kiểm tra Trạng thái (MỚI)
+* **Quy tắc:** Ngay sau "Bước 0", trước khi trình bày "Kế hoạch Thực thi", AI bắt buộc phải đưa ra một khối "Kiểm tra Trạng thái" để được người dùng xác nhận.
+* **Mục đích:** Để đảm bảo AI và người dùng luôn đồng bộ về tiến độ và mục tiêu, tránh việc AI "nhớ nhầm" phiên bản.
+* **Định dạng:**
+    ```
+    **KIỂM TRA TRẠNG THÁI:**
+    * **Phiên bản Hoàn thành Gần nhất:** `vX.Y.Z` ([Tên tính năng chính]).
+    * **Nhiệm-vụ Hiện tại:** [Tên nhiệm vụ đang thực hiện].
+    * **Phiên bản Đề xuất sau khi Hoàn thành:** `vA.B.C`.
+
+    *Vui lòng xác nhận ("OK") nếu các thông tin trên là chính xác.*
+    ```
+
+### 4.3. Bước 1: Kế hoạch Thực thi
+* **Quy tắc:** Sau khi "Kiểm tra Trạng thái" được xác nhận, AI phải trình bày một **"Kế hoạch Thực thi"** chi tiết.
 * **Nội dung:** Phải bao gồm **"Phân tích"** và **"Tự Phản biện"**.
 * **Phê duyệt:** Kế hoạch phải được người dùng phê duyệt.
 
-### 4.3. Bước 2: Cung cấp Gói Cập Nhật Mục Tiêu
+### 4.4. Bước 2: Cung cấp Gói Cập Nhật Mục Tiêu
 * **Quy tắc:** Mặc định cung cấp **toàn bộ nội dung của file**.
 * **Ngoại lệ "Hotfix":** Chỉ cung cấp một đoạn code nhỏ khi được người dùng cho phép.
 
-### 4.4. Bước 3: Cấu trúc Phản hồi Chuẩn của AI
+### 4.5. Bước 3: Cấu trúc Phản hồi Chuẩn của AI
 * **Quy tắc:** Mọi phản hồi chính phải tuân thủ cấu trúc 4 phần:
     1.  `Phần 1: Phân tích & Kế hoạch`
     2.  `Phần 2: Gói Cập Nhật Mục Tiêu (Nếu có)`
     3.  `Phần 3: Hướng dẫn Hành động Tiếp theo dành cho bạn`
     4.  `Phần 4: Kết quả Kỳ vọng & Cảnh báo`
 
-### 4.5. Bước 4: Hướng dẫn Tích hợp và Kiểm thử
+### 4.6. Bước 4: Hướng dẫn Tích hợp và Kiểm thử
 * Phần "Hướng dẫn" phải bao gồm các bước kiểm thử cụ thể và yêu cầu **commit sau khi đã xác nhận code chạy đúng**.
 
-### 4.6. Cơ chế "Reset"
+### 4.7. Cơ chế "Reset"
 * Khi AI vi phạm quy tắc, người dùng sẽ sử dụng từ khóa **`CHECK-WORKFLOW v[số-phiên-bản]`** (ví dụ: `CHECK-WORKFLOW v4.1`) để yêu cầu AI dừng lại và rà soát đúng phiên bản.
 
 ## 5. Phụ lục: Template Yêu cầu dành cho Người dùng
-(Phần này giữ nguyên không thay đổi)
+* (Phần này giữ nguyên không thay đổi)
