@@ -3,6 +3,12 @@
 Tất cả các thay đổi đáng chú ý của dự án sẽ được ghi lại tại đây.
 Dự án này tuân theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.0] - 2025-07-21
+
+### ✨ Added (Tính năng mới)
+- **Tích hợp Thư viện với Text-to-Speech:** Thêm nút "Gửi sang TTS" trong tab "Thư viện", cho phép người dùng nhanh chóng gửi nội dung "Story" của một dự án đã chọn sang tab "Text-to-Speech" để chuẩn bị tạo giọng nói, tối ưu hóa luồng làm việc.
+
+
 ## [1.3.0] - 2025-07-19
 
 ### ✨ Added (Tính năng mới)
