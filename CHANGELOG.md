@@ -3,6 +3,15 @@
 Tất cả các thay đổi đáng chú ý của dự án sẽ được ghi lại tại đây.
 Dự án này tuân theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.0] - 2025-07-21
+
+### ✨ Tính năng mới (Features)
+- **Tự động làm sạch Tiêu đề trong Thư viện:** Tên dự án và tiêu đề trong tab Thư viện giờ đây sẽ được tự động làm sạch các tiền tố số (ví dụ: "001 - Tên" -> "Tên") để giao diện gọn gàng và dễ đọc hơn.
+
+### ♻️ Tái cấu trúc (Refactoring)
+- Tái cấu trúc các hàm xử lý sự kiện trong `library_tab.py` (`_set_active_project`, `_delete_selected_project`, `_edit_project_name`) để luôn truy vấn tên dự án gốc từ CSDL, đảm bảo tính toàn vẹn dữ liệu sau khi tên hiển thị đã được làm sạch.
+
+
 ## [1.4.0] - 2025-07-21
 
 ### ✨ Added (Tính năng mới)

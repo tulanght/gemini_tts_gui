@@ -1,7 +1,7 @@
 # file-path: src/gemini_tts_app/database.py
-# version: 4.7
-# last-updated: 2025-07-19
-# description: Sửa lỗi nghiêm trọng, đảm bảo get_all_projects() trả về cột 'status'.
+# version: 4.3
+# last-updated: 2025-07-21
+# description: Bổ sung hàm get_project_names để hỗ trợ logic đồng bộ thông minh.
 
 import sqlite3
 import os
@@ -111,7 +111,19 @@ class DatabaseManager:
         except sqlite3.Error as e:
             print(f"Lỗi tạo/lấy dự án: {e}")
             return None
-
+    # hotfix v4.3.1 - 2025-07-21 - Thêm hàm để lấy danh sách tên tất cả các dự án.
+    def get_project_names(self):
+        """Lấy một tập hợp (set) chứa tên của tất cả các dự án hiện có."""
+        sql = "SELECT name FROM projects"
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(sql)
+                # Trả về một set để việc kiểm tra 'in' hiệu quả hơn
+                return {row['name'] for row in cursor.fetchall()}
+        except sqlite3.Error as e:
+            print(f"Lỗi khi lấy tên các dự án: {e}")
+            return set()
     def add_or_update_item(self, project_id, item_type, content):
         sql = """
             INSERT INTO project_items (project_id, type, content) VALUES (?, ?, ?)
