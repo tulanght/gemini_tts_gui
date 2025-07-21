@@ -1,7 +1,7 @@
 # QUY TRÌNH LÀM VIỆC DỰ ÁN (Project Workflow)
-# version: 4.2
+# version: 5.0
 # last-updated: 2025-07-21
-# description: Bổ sung "Bước 0.5: Kiểm tra Trạng thái" để tăng độ tin cậy.
+# description: Bổ sung quy tắc đặt tên phiên bản (Semantic Versioning) và làm rõ trách nhiệm cung cấp lệnh Git của AI.
 
 ## 1. Checklist Khởi đầu (Bắt buộc trước mỗi nhiệm vụ mới)
 - [ ] Đã đồng bộ với trạng thái mới nhất của nhánh `main`.
@@ -56,11 +56,19 @@
     * **Ví dụ:** `# hotfix v6.7.1 - 2025-07-19 - Sửa lỗi luồng và thuộc tính.`
 
 ### 3.6. Quy trình Hoàn tất Tính năng & Phát hành
+
 * **Quy tắc:** Khi một nhánh `feature/...` được xác nhận là đã hoàn thành, quy trình sau là **bắt buộc** trước khi tạo PR.
 1.  **Chạy Kịch bản Nâng cấp:** Người dùng thực thi lệnh `python scripts/release.py`.
-2.  **Nhập Phiên bản mới:** Cung cấp số hiệu phiên bản mới.
+2.  **Nhập Phiên bản mới:** Cung cấp số hiệu phiên bản mới tuân theo quy tắc tại mục `3.6.1`.
 3.  **Điền Changelog:** Người dùng mở `CHANGELOG.md` và điền chi tiết thay đổi.
 4.  **Commit & Hợp nhất:** Tiến hành commit và tạo Pull Request.
+
+#### 3.6.1. Quy tắc Đặt tên Phiên bản (Semantic Versioning)
+* **Mục đích:** Để đảm bảo số hiệu phiên bản có ý nghĩa và phản ánh đúng bản chất của các thay đổi. Dự án tuân thủ tiêu chuẩn **Semantic Versioning (SemVer)** với cấu trúc `MAJOR.MINOR.PATCH`.
+* **Quy tắc tăng số:**
+    * **`PATCH` (ví dụ: 1.4.0 -> 1.4.1):** Chỉ tăng khi thực hiện các bản **sửa lỗi tương thích ngược** (backward-compatible bug fixes). Ví dụ: Sửa lỗi chính tả, vá một lỗi crash nhỏ.
+    * **`MINOR` (ví dụ: 1.4.1 -> 1.5.0):** Chỉ tăng khi **thêm một tính năng mới** nhưng vẫn **tương thích ngược**. Ví dụ: Thêm một nút mới, một chức năng mới không làm hỏng chức năng cũ.
+    * **`MAJOR` (ví dụ: 1.5.0 -> 2.0.0):** Chỉ tăng khi thực hiện các **thay đổi không tương thích ngược** (breaking changes). Ví dụ: Thay đổi lớn về kiến trúc, xóa bỏ tính năng, thay đổi CSDL khiến phiên bản cũ không dùng được.
 
 ### 3.7. Quy trình Cập nhật Roadmap
 * Khi một giai đoạn lớn được hoàn thành, mục đó sẽ được xóa bỏ khỏi kế hoạch và một dòng tóm tắt thành tựu sẽ được thêm vào cuối file.
@@ -97,14 +105,15 @@
 * **Quy tắc:** Mọi phản hồi chính phải tuân thủ cấu trúc 4 phần:
     1.  `Phần 1: Phân tích & Kế hoạch`
     2.  `Phần 2: Gói Cập Nhật Mục Tiêu (Nếu có)`
-    3.  `Phần 3: Hướng dẫn Hành động Tiếp theo dành cho bạn`
+    3.  `Phần 3: Hướng dẫn Hành động Tiếp theo & Lệnh Git`
     4.  `Phần 4: Kết quả Kỳ vọng & Cảnh báo`
 
-### 4.6. Bước 4: Hướng dẫn Tích hợp và Kiểm thử
-* Phần "Hướng dẫn" phải bao gồm các bước kiểm thử cụ thể và yêu cầu **commit sau khi đã xác nhận code chạy đúng**.
+### 4.6. Bước 4: Hướng dẫn Tích hợp & Hoàn tất (Git)
+* **Quy tắc:** Phần "Hướng dẫn" (Phần 3) phải bao gồm các bước kiểm thử cụ thể (nếu có) và yêu cầu **commit sau khi đã xác nhận code chạy đúng**.
+* **Bắt buộc:** AI phải cung cấp đầy đủ, chính xác các lệnh Git cần thiết (tạo nhánh, thêm file, commit) để người dùng có thể hoàn tất nhiệm vụ theo đúng trình tự. Các lệnh này phải được đặt trong một mục con rõ ràng bên trong Phần 3.
 
 ### 4.7. Cơ chế "Reset"
-* Khi AI vi phạm quy tắc, người dùng sẽ sử dụng từ khóa **`CHECK-WORKFLOW v[số-phiên-bản]`** (ví dụ: `CHECK-WORKFLOW v4.1`) để yêu cầu AI dừng lại và rà soát đúng phiên bản.
+* Khi AI vi phạm quy tắc, người dùng sẽ sử dụng từ khóa **`CHECK-WORKFLOW v[số-phiên-bản]`** (ví dụ: `CHECK-WORKFLOW v5.0`) để yêu cầu AI dừng lại và rà soát đúng phiên bản.
 
 ## 5. Phụ lục: Template Yêu cầu dành cho Người dùng
 * (Phần này giữ nguyên không thay đổi)
