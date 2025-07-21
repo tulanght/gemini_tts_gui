@@ -1,16 +1,19 @@
 # QUY TRÌNH LÀM VIỆC DỰ ÁN (Project Workflow)
-# version: 5.0
-# last-updated: 2025-07-21
-# description: Bổ sung quy tắc đặt tên phiên bản (Semantic Versioning) và làm rõ trách nhiệm cung cấp lệnh Git của AI.
+# version: 6.0
+# last-updated: 2025-07-22
+# description: Cải tổ toàn diện quy trình cộng tác với AI. Bổ sung "Quy tắc Phân loại Nhiệm vụ" để quyết định luồng làm việc linh hoạt (1 giai đoạn hoặc 2 giai đoạn). Cập nhật lại checklist khởi đầu.
 
-## 1. Checklist Khởi đầu (Bắt buộc trước mỗi nhiệm vụ mới)
-- [ ] Đã đồng bộ với trạng thái mới nhất của nhánh `main`.
-- [ ] Đã đọc và hiểu rõ các quy tắc trong file `WORKFLOW.md` này.
-- [ ] **Đã đọc và hiểu các giới hạn trong file `TECHNICAL_NOTES.md`**
+## 1. Nguồn Lực Tham Chiếu
+Trước khi bắt đầu bất kỳ nhiệm vụ nào, các tài liệu sau phải luôn được coi là nguồn thông tin cốt lõi và đáng tin cậy:
+* **`WORKFLOW.md` (File này):** "Hiến pháp" về mọi quy trình làm việc.
+* **`ROADMAP.md`:** Lộ trình phát triển và các mục tiêu của dự án.
+* **`TECHNICAL_NOTES.md`:** Các quyết định kiến trúc và bài học kỹ thuật quan trọng.
+* **`CHANGELOG.md`:** Lịch sử các thay đổi đã được phát hành để nắm được bối cảnh gần nhất.
 
 ## 2. Triết lý Chung
 * **Nguồn sự thật duy nhất:** Nhánh `main` là nền tảng ổn định.
-* **Làm việc trên nhánh:** Mọi thay đổi đều phải được thực hiện trên nhánh riêng.
+* **Làm việc trên nhánh (BẮT BUỘC):** Mọi thay đổi đều phải được thực hiện trên nhánh riêng.
+    * *Ghi chú:* Gemini AI có trách nhiệm chủ động đề xuất tạo nhánh mới ở đầu mỗi nhiệm vụ tính năng lớn.
 * **Hợp nhất qua Pull Request:** Mọi thay đổi chỉ được đưa vào `main` qua PR.
 * **AI là Cộng tác viên:** Gemini AI phải tuân thủ nghiêm ngặt toàn bộ quy trình này.
 
@@ -75,45 +78,44 @@
 
 ## 4. Quy trình Cộng tác với Gemini AI (BẮT BUỘC)
 
-### 4.1. Bước 0: Xác nhận Nhiệm vụ (Khóa an toàn)
-* **Quy tắc:** Sau mỗi yêu cầu mới từ người dùng, phản hồi **đầu tiên và duy nhất** của AI bắt buộc phải là:
-    > "Đã nhận nhiệm vụ. Đã hoàn thành 'Checklist Khởi đầu'. Đang phân tích theo `WORKFLOW.md`."
+### 4.1. Quy tắc Vàng: Phân loại Nhiệm vụ trước khi Hành động
+Đây là quy tắc cốt lõi, quyết định luồng làm việc sẽ diễn ra theo 1 hay 2 giai đoạn. Gemini AI phải tự đưa ra phán đoán dựa trên các tiêu chí sau:
 
-### 4.2. Bước 0.5: Kiểm tra Trạng thái (MỚI)
-* **Quy tắc:** Ngay sau "Bước 0", trước khi trình bày "Kế hoạch Thực thi", AI bắt buộc phải đưa ra một khối "Kiểm tra Trạng thái" để được người dùng xác nhận.
-* **Mục đích:** Để đảm bảo AI và người dùng luôn đồng bộ về tiến độ và mục tiêu, tránh việc AI "nhớ nhầm" phiên bản.
-* **Định dạng:**
-    ```
-    **KIỂM TRA TRẠNG THÁI:**
-    * **Phiên bản Hoàn thành Gần nhất:** `vX.Y.Z` ([Tên tính năng chính]).
-    * **Nhiệm-vụ Hiện tại:** [Tên nhiệm vụ đang thực hiện].
-    * **Phiên bản Đề xuất sau khi Hoàn thành:** `vA.B.C`.
+#### A. KHI NÀO PHẢN HỒI GỘP TRONG 1 LẦN (Cho các thay đổi nhỏ & rõ ràng)
+AI sẽ sử dụng một phản hồi duy nhất (bao gồm Phân tích ngắn gọn, Mã nguồn và lệnh Git) khi nhiệm vụ đáp ứng **TẤT CẢ** các tiêu chí sau:
+1.  **Mục tiêu Cụ thể:** Yêu cầu không có sự mơ hồ (ví dụ: "đổi độ rộng cột X thành Y").
+2.  **Rủi ro Thấp:** Thay đổi chỉ ảnh hưởng đến một file và ít khả năng gây lỗi phụ trợ.
+3.  **Không có Logic Mới Phức tạp:** Không tạo hàm/lớp mới, chỉ sửa đổi các giá trị hoặc các thành phần đơn giản.
 
-    *Vui lòng xác nhận ("OK") nếu các thông tin trên là chính xác.*
-    ```
+#### B. KHI NÀO PHẢI CHIA LÀM 2 GIAI ĐOẠN (Phân tích -> Thực thi)
+AI **BẮT BUỘC** phải chia nhiệm vụ thành 2 giai đoạn (Giai đoạn 1: Phân tích & Xin phê duyệt; Giai đoạn 2: Thực thi) khi nhiệm vụ có **BẤT KỲ** đặc điểm nào sau đây:
+1.  **Yêu cầu mang tính Ý tưởng/Chiến lược:** Yêu cầu mô tả một vấn đề lớn chưa có giải pháp kỹ thuật rõ ràng (ví dụ: "cải thiện giao diện tab X", "làm cho tính năng Y thông minh hơn").
+2.  **Ảnh hưởng đến Nhiều File/Toàn bộ Ứng dụng:** Thay đổi có tác động đến nhiều module hoặc toàn bộ kiến trúc (ví dụ: áp dụng theme mới, thay đổi CSDL).
+3.  **Yêu cầu tạo Logic Mới Phức tạp:** Cần viết các hàm, lớp, hoặc thuật toán mới.
+4.  **Có Rủi ro tiềm ẩn:** Khi giải pháp có thể gây ra các tác dụng phụ không mong muốn.
 
-### 4.3. Bước 1: Kế hoạch Thực thi
-* **Quy tắc:** Sau khi "Kiểm tra Trạng thái" được xác nhận, AI phải trình bày một **"Kế hoạch Thực thi"** chi tiết.
-* **Nội dung:** Phải bao gồm **"Phân tích"** và **"Tự Phản biện"**.
-* **Phê duyệt:** Kế hoạch phải được người dùng phê duyệt.
+### 4.2. Giai đoạn 1: Phân tích & Kế hoạch (Đối với thay đổi lớn)
+* **Kích hoạt:** Khi nhiệm vụ được phân loại là "thay đổi lớn".
+* **Hành động:** AI trình bày một phản hồi chi tiết bao gồm:
+    * Tiếp nhận & Kiểm tra File (nếu cần, yêu cầu người dùng cung cấp).
+    * Kiểm tra Trạng thái Phiên bản.
+    * Phân tích sâu về yêu cầu, các hướng tiếp cận, ưu nhược điểm.
+    * Đề xuất một kế hoạch thực thi cụ thể.
+    * Kết thúc bằng việc **xin phê duyệt** kế hoạch từ người dùng.
 
-### 4.4. Bước 2: Cung cấp Gói Cập Nhật Mục Tiêu
-* **Quy tắc:** Mặc định cung cấp **toàn bộ nội dung của file**.
-* **Ngoại lệ "Hotfix":** Chỉ cung cấp một đoạn code nhỏ khi được người dùng cho phép.
+### 4.3. Giai đoạn 2: Thực thi (Sau khi kế hoạch được phê duyệt)
+* **Kích hoạt:** Sau khi người dùng trả lời "OK" cho kế hoạch ở Giai đoạn 1.
+* **Hành động:** AI trình bày một phản hồi đầy đủ theo cấu trúc 4 phần:
+    1.  `Phần 1: Phân tích & Kế hoạch` (Tóm tắt lại kế hoạch đã được duyệt).
+    2.  `Phần 2: Gói Cập Nhật Mục Tiêu` (Cung cấp mã nguồn).
+    3.  `Phần 3: Hướng dẫn Hành động & Lệnh Git`:
+        * **Luôn bắt đầu** bằng lệnh `git checkout -b` để tạo nhánh mới.
+        * Cung cấp các bước cài đặt, kiểm thử.
+        * Cung cấp các lệnh `git add` và `git commit` để hoàn tất.
+    4.  `Phần 4: Kết quả Kỳ vọng & Cảnh báo`.
 
-### 4.5. Bước 3: Cấu trúc Phản hồi Chuẩn của AI
-* **Quy tắc:** Mọi phản hồi chính phải tuân thủ cấu trúc 4 phần:
-    1.  `Phần 1: Phân tích & Kế hoạch`
-    2.  `Phần 2: Gói Cập Nhật Mục Tiêu (Nếu có)`
-    3.  `Phần 3: Hướng dẫn Hành động Tiếp theo & Lệnh Git`
-    4.  `Phần 4: Kết quả Kỳ vọng & Cảnh báo`
-
-### 4.6. Bước 4: Hướng dẫn Tích hợp & Hoàn tất (Git)
-* **Quy tắc:** Phần "Hướng dẫn" (Phần 3) phải bao gồm các bước kiểm thử cụ thể (nếu có) và yêu cầu **commit sau khi đã xác nhận code chạy đúng**.
-* **Bắt buộc:** AI phải cung cấp đầy đủ, chính xác các lệnh Git cần thiết (tạo nhánh, thêm file, commit) để người dùng có thể hoàn tất nhiệm vụ theo đúng trình tự. Các lệnh này phải được đặt trong một mục con rõ ràng bên trong Phần 3.
-
-### 4.7. Cơ chế "Reset"
-* Khi AI vi phạm quy tắc, người dùng sẽ sử dụng từ khóa **`CHECK-WORKFLOW v[số-phiên-bản]`** (ví dụ: `CHECK-WORKFLOW v5.0`) để yêu cầu AI dừng lại và rà soát đúng phiên bản.
+### 4.4. Cơ chế "Reset"
+* Khi AI vi phạm quy tắc, người dùng sẽ sử dụng từ khóa `CHECK-WORKFLOW` để yêu cầu AI dừng lại và rà soát lại quy trình trong file này.
 
 ## 5. Phụ lục: Template Yêu cầu dành cho Người dùng
 * (Phần này giữ nguyên không thay đổi)
