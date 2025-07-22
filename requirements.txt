@@ -20,7 +20,6 @@ flax==0.10.4
 fonttools==4.58.4
 fs==2.4.16
 fsspec==2025.2.0
--e git+https://github.com/tulanght/gemini_tts_gui.git@9c5523063a8ad896367d3b85a9db52baec16516a#egg=gemini_creative_suite
 google-ai-generativelanguage==0.6.15
 google-api-core==2.25.0rc1
 google-api-python-client==2.170.0
