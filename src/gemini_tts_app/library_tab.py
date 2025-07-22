@@ -1,7 +1,7 @@
 # file-path: src/gemini_tts_app/library_tab.py
-# version: 8.2
-# last-updated: 2025-07-21
-# description: Bổ sung logic làm sạch tên dự án/tiêu đề khi hiển thị và tái cấu trúc các hàm liên quan để đảm bảo tính toàn vẹn dữ liệu.
+# version: 8.3
+# last-updated: 2025-07-22
+# description: Tối ưu lại độ rộng các cột trong Treeview để ưu tiên không gian cho cột "Nội dung Truyện".
 
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog, scrolledtext
@@ -111,12 +111,13 @@ class LibraryTab(ttk.Frame):
         self.library_tree.heading("thumbnail", text="Kịch bản Thumbnail")
         self.library_tree.heading("story", text="Nội dung Truyện")
 
+        # --- THAY ĐỔI ĐỘ RỘNG CÁC CỘT TẠI ĐÂY ---
         self.library_tree.column("id", width=40, anchor="center", stretch=False)
-        self.library_tree.column("status", width=100, anchor="center")
-        self.library_tree.column("name", width=200)
-        self.library_tree.column("title", width=250)
-        self.library_tree.column("thumbnail", width=250)
-        self.library_tree.column("story", width=200)
+        self.library_tree.column("status", width=100, anchor="center", stretch=False)
+        self.library_tree.column("name", width=150, stretch=False)
+        self.library_tree.column("title", width=200, stretch=False)
+        self.library_tree.column("thumbnail", width=200, stretch=False)
+        self.library_tree.column("story", width=350) # stretch=True mặc định cho cột cuối
 
         self.library_tree.bind("<Double-1>", self._on_project_double_click)
         self.library_tree.bind("<Button-3>", self._show_status_menu)
@@ -165,6 +166,7 @@ class LibraryTab(ttk.Frame):
         self._load_gdrive_groups_to_combobox()
         self._load_project_data()
 
+    # ... (Các hàm còn lại không thay đổi) ...
     def _load_gdrive_groups_to_combobox(self):
         """Tải danh sách các nhóm Google Drive vào Combobox."""
         all_groups = load_project_groups()
