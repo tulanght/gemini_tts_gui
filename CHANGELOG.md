@@ -3,6 +3,13 @@
 Tất cả các thay đổi đáng chú ý của dự án sẽ được ghi lại tại đây.
 Dự án này tuân theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.7.0] - 2025-07-22
+
+### ♻️ Tái cấu trúc (Refactoring)
+- **Tách Module Tab Text-to-Speech:** Tái cấu trúc lớn, tách toàn bộ giao diện và logic của tab "Text-to-Speech" từ `main_app.py` ra một module riêng (`tts_tab.py`). Giúp `main_app.py` trở nên gọn nhẹ hơn và tuân thủ chặt chẽ nguyên tắc Tách bạch Trách nhiệm.
+- **Tách Module Tab Trợ lý Biên tập:** Tái cấu trúc lớn, tách toàn bộ giao diện và logic của tab "Trợ lý Biên tập" từ `main_app.py` ra một module riêng (`editorial_assistant_tab.py`), đồng thời tái thiết kế giao diện bên trong với cấu trúc tab con (Tiêu đề, Thumbnail, Hook).
+
+
 ## [1.6.0] - 2025-07-22
 
 ### ✨ Tính năng mới (Features)
