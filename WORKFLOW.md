@@ -1,5 +1,5 @@
 # QUY TRÌNH LÀM VIỆC DỰ ÁN (Project Workflow)
-# version: 6.0
+# version: 6.1
 # last-updated: 2025-07-22
 # description: Cải tổ toàn diện quy trình cộng tác với AI. Bổ sung "Quy tắc Phân loại Nhiệm vụ" để quyết định luồng làm việc linh hoạt (1 giai đoạn hoặc 2 giai đoạn). Cập nhật lại checklist khởi đầu.
 
@@ -112,6 +112,7 @@ AI **BẮT BUỘC** phải chia nhiệm vụ thành 2 giai đoạn (Giai đoạn
         * **Luôn bắt đầu** bằng lệnh `git checkout -b` để tạo nhánh mới.
         * Cung cấp các bước cài đặt, kiểm thử.
         * Cung cấp các lệnh `git add` và `git commit` để hoàn tất.
+        * Nhắc nhở người dùng tại Pull Request và merge vào `main` nếu đạt được kết quả kỳ vọng ở phần 4.
     4.  `Phần 4: Kết quả Kỳ vọng & Cảnh báo`.
 
 ### 4.4. Cơ chế "Reset"

@@ -3,6 +3,11 @@
 Tất cả các thay đổi đáng chú ý của dự án sẽ được ghi lại tại đây.
 Dự án này tuân theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.6.0] - 2025-07-22
+
+### ✨ Tính năng mới (Features)
+- **Tích hợp Theme Giao diện Hiện đại:** Tích hợp thư viện `sv-ttk` để áp dụng theme "light" cho toàn bộ ứng dụng, mang lại một diện mạo mới, đồng bộ và chuyên nghiệp hơn, thay thế cho theme `clam` mặc định.
+
 ## [1.5.0] - 2025-07-21
 
 ### ✨ Tính năng mới (Features)
