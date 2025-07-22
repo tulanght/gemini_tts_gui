@@ -20,11 +20,13 @@ flax==0.10.4
 fonttools==4.58.4
 fs==2.4.16
 fsspec==2025.2.0
+-e git+https://github.com/tulanght/gemini_tts_gui.git@9c5523063a8ad896367d3b85a9db52baec16516a#egg=gemini_creative_suite
 google-ai-generativelanguage==0.6.15
 google-api-core==2.25.0rc1
 google-api-python-client==2.170.0
 google-auth==2.40.2
 google-auth-httplib2==0.2.0
+google-auth-oauthlib==1.2.2
 google-genai==1.16.1
 google-generativeai==0.8.5
 googleapis-common-protos==1.70.0
@@ -56,6 +58,7 @@ mss==10.0.0
 nest-asyncio==1.6.0
 networkx==3.4.2
 numpy==2.2.3
+oauthlib==3.3.1
 opencv-python==4.11.0.86
 opt_einsum==3.4.0
 optax==0.2.4
@@ -88,6 +91,7 @@ pywin32-ctypes==0.2.3
 PyYAML==6.0.2
 regex==2024.11.6
 requests==2.32.3
+requests-oauthlib==2.0.0
 rich==13.9.4
 rsa==4.9.1
 safetensors==0.5.3
@@ -96,6 +100,7 @@ setuptools==75.8.0
 simplejson==3.20.1
 six==1.17.0
 sniffio==1.3.1
+sv-ttk==2.5.5
 sympy==1.13.1
 tensorstore==0.1.72
 toolz==1.0.0
@@ -110,5 +115,3 @@ websockets==15.0.1
 webvtt-py==0.5.1
 yt-dlp==2025.2.19
 zipp==3.21.0
-# --- Google API Libraries ---
-google-auth-oauthlib
