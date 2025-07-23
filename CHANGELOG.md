@@ -3,6 +3,12 @@
 Tất cả các thay đổi đáng chú ý của dự án sẽ được ghi lại tại đây.
 Dự án này tuân theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.9.1] - 2025-07-24
+
+### 🐛 Sửa lỗi (Bug Fixes)
+- **Giao diện Chính:** Sắp xếp lại thứ tự `pack()` của các widget chính trong `main_app.py` để khắc phục triệt để lỗi khu vực "Nhật ký Hoạt động" và "Thanh Trạng thái" bị che khuất.
+
+
 ## [1.9.0] - 2025-07-23
 
 ### ♻️ Tái cấu trúc (Refactoring)
