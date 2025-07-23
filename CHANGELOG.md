@@ -3,6 +3,21 @@
 Tất cả các thay đổi đáng chú ý của dự án sẽ được ghi lại tại đây.
 Dự án này tuân theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.9.0] - 2025-07-23
+
+### ♻️ Tái cấu trúc (Refactoring)
+- **Hoàn tất Tái cấu trúc Module hóa Toàn bộ Ứng dụng:**
+    - Tách toàn bộ giao diện và logic của tab "Settings" từ `main_app.py` ra một module riêng (`settings_tab.py`).
+    - Hoàn thiện việc tách các module cho các tab "Text-to-Speech", "Trợ lý Biên tập", và "Soạn Truyện Dài".
+    - File `main_app.py` giờ đây đã cực kỳ gọn nhẹ, chỉ còn đóng vai trò điều phối chính, giúp tăng cường khả năng bảo trì và mở rộng của dự án.
+
+
+## [1.8.0] - 2025-07-23
+
+### ♻️ Tái cấu trúc (Refactoring)
+- **Tách Module Tab Soạn Truyện Dài:** Tiếp tục tái cấu trúc kiến trúc, tách toàn bộ giao diện và logic của tab "Soạn Truyện Dài" từ `main_app.py` ra một module riêng (`long_form_composer_tab.py`).
+
+
 ## [1.7.0] - 2025-07-22
 
 ### ♻️ Tái cấu trúc (Refactoring)
