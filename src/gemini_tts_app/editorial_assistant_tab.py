@@ -18,6 +18,7 @@ class EditorialAssistantTab(ttk.Frame):
 
         self._create_widgets()
 
+    # hotfix - 2025-07-24 - Thêm tùy chọn 'uniform' để ép tỉ lệ cột 1:3 hiển thị chính xác
     def _create_widgets(self):
         self.columnconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
@@ -35,7 +36,10 @@ class EditorialAssistantTab(ttk.Frame):
         # --- KHU VỰC LÀM VIỆC VỚI CÁC TAB CON ---
         main_work_area = ttk.Frame(self)
         main_work_area.grid(row=1, column=0, sticky="nsew")
-        main_work_area.columnconfigure(1, weight=1) # Cột soạn thảo (phải) sẽ chiếm nhiều không gian hơn
+        
+        # THAY ĐỔI TẠI ĐÂY: Thêm 'uniform' để buộc áp dụng tỉ lệ
+        main_work_area.columnconfigure(0, weight=1, uniform="group1") 
+        main_work_area.columnconfigure(1, weight=3, uniform="group1")
         main_work_area.rowconfigure(0, weight=1)
 
         # --- KHUNG BÊN TRÁI: DANH SÁCH LỰA CHỌN ---
@@ -51,7 +55,7 @@ class EditorialAssistantTab(ttk.Frame):
         # --- KHUNG BÊN PHẢI: SOẠN THẢO VÀ CHỐT PHƯƠNG ÁN ---
         editor_pane = ttk.LabelFrame(main_work_area, text="3. Soạn thảo & Chốt phương án", padding=10)
         editor_pane.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
-        editor_pane.rowconfigure(1, weight=1)
+        editor_pane.rowconfigure(0, weight=1)
         editor_pane.columnconfigure(0, weight=1)
 
         self.sub_notebook = ttk.Notebook(editor_pane)
