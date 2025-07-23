@@ -36,6 +36,7 @@ class TkinterLogHandler(logging.Handler):
         self.text_widget.after_idle(append)
 
 class TTSApp:
+    # hotfix - 2025-07-24 - Sắp xếp lại thứ tự pack để log và status bar luôn hiển thị
     def __init__(self, root):
         self.root = root
         self.root.title(f"{APP_NAME} v1.9.0")
@@ -61,7 +62,18 @@ class TTSApp:
         
         self._set_window_icon()
         
+        # --- SẮP XẾP LẠI BỐ CỤC CHÍNH ---
+        # 1. Đặt các thành phần ở dưới cùng TRƯỚC
+        self.status_bar_frame = ttk.Frame(root, padding=5)
+        self.status_bar_frame.pack(side="bottom", fill="x")
+        status_label = ttk.Label(self.status_bar_frame, textvariable=self.active_project_status, anchor="w")
+        status_label.pack(fill="x", expand=True)
+        
+        self.setup_ui_logging(root) # Hàm này sẽ tự pack log frame vào bottom
+
+        # 2. Đặt Notebook (khu vực tab) vào không gian còn lại
         self.notebook = ttk.Notebook(root)
+        self.notebook.pack(expand=True, fill="both", padx=10, pady=5)
 
         # --- KHỞI TẠO VÀ THÊM TẤT CẢ CÁC TAB (DẠNG MODULE) ---
         self.tts_tab = TTSTab(self.notebook, self)
@@ -75,16 +87,6 @@ class TTSApp:
         self.notebook.add(self.editorial_assistant_tab, text="✍️ Trợ lý Biên tập")
         self.notebook.add(self.composer_tab, text="📝 Soạn Truyện Dài")
         self.notebook.add(self.settings_tab, text="⚙️ Cài đặt")
-
-        self.notebook.pack(expand=True, fill="both", padx=10, pady=5)
-        
-        # --- THANH TRẠNG THÁI VÀ LOG ---
-        self.status_bar_frame = ttk.Frame(root, padding=5)
-        self.status_bar_frame.pack(side="bottom", fill="x")
-        status_label = ttk.Label(self.status_bar_frame, textvariable=self.active_project_status, anchor="w")
-        status_label.pack(fill="x", expand=True)
-        
-        self.setup_ui_logging(root)
 
     def get_active_api_keys(self):
         active_keys = []

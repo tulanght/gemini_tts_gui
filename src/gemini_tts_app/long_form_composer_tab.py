@@ -30,8 +30,9 @@ class LongFormComposerTab(ttk.Frame):
         self._create_widgets()
         self._load_projects_into_composer_combobox()
 
+    # hotfix - 2025-07-24 - Xóa rowconfigure để khung không giãn ra che mất các thành phần khác
     def _create_widgets(self):
-        self.rowconfigure(0, weight=1)
+        # DÒNG NÀY ĐÃ BỊ XÓA: self.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1)
 
         main_pane = ttk.LabelFrame(self, text="Bản thảo truyện", padding=10)
@@ -39,7 +40,7 @@ class LongFormComposerTab(ttk.Frame):
         main_pane.rowconfigure(0, weight=1)
         main_pane.columnconfigure(0, weight=1)
 
-        self.composer_text = scrolledtext.ScrolledText(main_pane, wrap=tk.WORD, height=15)
+        self.composer_text = scrolledtext.ScrolledText(main_pane, wrap=tk.WORD, height=10)
         self.composer_text.grid(row=0, column=0, sticky="nsew")
         self.composer_text.bind("<KeyRelease>", self.update_composer_counter)
 
