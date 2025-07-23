@@ -1,13 +1,15 @@
 # file-path: src/gemini_tts_app/main_app.py
-# version: 6.1
-# last-updated: 2025-07-22
-# description: Tái cấu trúc - Tách tab Text-to-Speech ra module riêng (tts_tab.py).
+# version: 6.2
+# last-updated: 2025-07-23
+# description: Tái cấu trúc - Tách tab Soạn Truyện Dài ra module riêng (long_form_composer_tab.py).
 
 import tkinter as tk
-from tkinter import ttk, scrolledtext, simpledialog
+from tkinter import ttk, messagebox
 import logging
+import os
+import sys
 
-from .settings_manager import save_settings, load_settings, NUM_API_KEYS
+from .settings_manager import load_settings, NUM_API_KEYS
 from .constants import APP_NAME
 from .utils import get_resource_path
 from .database import DatabaseManager
@@ -16,7 +18,8 @@ from .database import DatabaseManager
 from .library_tab import LibraryTab
 from .editorial_assistant_tab import EditorialAssistantTab
 from .tts_tab import TTSTab
-# (Các tab khác sẽ được import ở đây)
+from .long_form_composer_tab import LongFormComposerTab
+# (SettingsTab sẽ được import ở bước cuối)
 
 class TkinterLogHandler(logging.Handler):
     def __init__(self, text_widget):
@@ -35,8 +38,7 @@ class TkinterLogHandler(logging.Handler):
 class TTSApp:
     def __init__(self, root):
         self.root = root
-        # Phiên bản sẽ được cập nhật bởi release.py
-        self.root.title(f"{APP_NAME} v1.7.0")
+        self.root.title(f"{APP_NAME} v1.8.0")
         self.root.geometry("950x850")
 
         style = ttk.Style(self.root)
@@ -65,13 +67,14 @@ class TTSApp:
         self.tts_tab = TTSTab(self.notebook, self)
         self.library_tab = LibraryTab(self.notebook, self.db_manager, self)
         self.editorial_assistant_tab = EditorialAssistantTab(self.notebook, self.db_manager, self)
-        # composer_tab = ComposerTab(...)
+        self.composer_tab = LongFormComposerTab(self.notebook, self.db_manager, self)
         # settings_tab = SettingsTab(...)
         
         self.notebook.add(self.tts_tab, text="🎙️ Text-to-Speech")
         self.notebook.add(self.library_tab, text="📖 Thư viện")
         self.notebook.add(self.editorial_assistant_tab, text="✍️ Trợ lý Biên tập")
-        # .add() cho các tab còn lại
+        self.notebook.add(self.composer_tab, text="📝 Soạn Truyện Dài")
+        # .add() cho tab Settings
 
         self.notebook.pack(expand=True, fill="both", padx=10, pady=5)
         
@@ -112,7 +115,6 @@ class TTSApp:
             return
         items = self.db_manager.get_items_for_project(self.active_project_id)
         types_found = {item['type'] for item in items}
-        # Cập nhật để kiểm tra cả "Hook"
         required_items = {'Story', 'Title', 'Thumbnail', 'Hook'}
         if required_items.issubset(types_found):
             self.status_bar_frame.configure(style="Complete.TFrame")
@@ -123,12 +125,21 @@ class TTSApp:
         self.active_project_id = project_id
         self.active_project_name = project_name
         self.active_project_status.set(f"Trạng thái: Đang làm việc trên dự án '{self.active_project_name}' (ID: {self.active_project_id})")
+        
+        # Tải nội dung truyện vào tab Soạn Truyện Dài
+        items = self.db_manager.get_items_for_project(project_id)
+        story_content = ""
+        for item in items:
+            if item['type'] == 'Story':
+                story_content = item['content']
+                break
+        self.composer_tab.load_story_from_project(story_content, project_name)
+        
         self._check_and_update_project_status_color()
-        self.notebook.select(self.editorial_assistant_tab)
+        self.notebook.select(self.composer_tab)
         self.log_message(f"Đã kích hoạt dự án: '{project_name}'")
 
     def send_story_to_tts(self, project_id):
-        """Hàm điều phối: Lấy truyện từ DB và yêu cầu tab TTS hiển thị nó."""
         items = self.db_manager.get_items_for_project(project_id)
         story_content = ""
         for item in items:
@@ -143,16 +154,18 @@ class TTSApp:
             messagebox.showwarning("Không có Nội dung", "Dự án này chưa có nội dung truyện.", parent=self.root)
 
     def on_closing(self):
+        # Đảm bảo các luồng chạy ngầm được dừng lại (nếu có)
+        if hasattr(self.composer_tab, 'is_monitoring_clipboard') and self.composer_tab.is_monitoring_clipboard:
+            self.composer_tab.is_monitoring_clipboard = False
         self.root.destroy()
 
     def log_message(self, message: str):
         logging.info(message)
     
     def _set_window_icon(self):
-        import sys
         try:
             if sys.platform.startswith('win'):
-                icon_path = get_resource_path("icons/app_icon.ico")
+                icon_path = get_resource_path("resources/icons/app_icon.ico")
                 if os.path.exists(icon_path): self.root.iconbitmap(icon_path)
         except Exception as e:
             self.log_message(f"Error setting window icon: {e}")
