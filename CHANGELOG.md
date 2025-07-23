@@ -3,6 +3,15 @@
 Tất cả các thay đổi đáng chú ý của dự án sẽ được ghi lại tại đây.
 Dự án này tuân theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.10.0] - 2025-07-24
+
+### ✨ Tính năng mới (Features)
+- **Tái thiết kế Giao diện Tab Trợ lý Biên tập:** Điều chỉnh lại tỉ lệ kích thước giữa khung "Lựa chọn" và khung "Soạn thảo" thành 1:3, ưu tiên tối đa không gian cho việc biên tập nội dung.
+
+### 🐛 Sửa lỗi (Bug Fixes)
+- **Giao diện Trợ lý Biên tập:** Sử dụng tùy chọn `uniform` của trình quản lý layout `.grid()` để đảm bảo tỉ lệ 1:3 được hiển thị một cách chính xác và nhất quán.
+
+
 ## [1.9.1] - 2025-07-24
 
 ### 🐛 Sửa lỗi (Bug Fixes)
