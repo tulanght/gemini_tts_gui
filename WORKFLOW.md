@@ -1,7 +1,7 @@
 # QUY TRÌNH LÀM VIỆC DỰ ÁN (Project Workflow)
-# version: 9.0
-# last-updated: 2025-07-22
-# description: Phiên bản cuối cùng. Hoàn thiện quy tắc cung cấp mã nguồn, phân biệt rõ ràng giữa hotfix cho hàm và cập nhật header cho file.
+# version: 10.0
+# last-updated: 2025-07-24
+# description: Phiên bản cuối cùng. Tinh chỉnh quy trình cộng tác với AI thành một luồng làm việc linh hoạt, thực tế và an toàn, thừa nhận các giới hạn về ngữ cảnh.
 
 ## 1. Nguồn Lực Tham Chiếu
 Trước khi bắt đầu bất kỳ nhiệm vụ nào, các tài liệu sau phải luôn được coi là nguồn thông tin cốt lõi và đáng tin cậy:
@@ -60,7 +60,7 @@ Trước khi bắt đầu bất kỳ nhiệm vụ nào, các tài liệu sau ph�
     ```python
     # hotfix - YYYY-MM-DD - [Mô tả ngắn gọn về thay đổi]
     ```
-    * **Ví dụ:** `# hotfix - 2025-07-22 - Sửa lỗi chia cho zero`
+    * **Ví dụ:** `# hotfix - 2025-07-24 - Sửa lỗi chia cho zero`
 
 #### 3.5.3. Quy tắc Cung cấp Toàn bộ File
 * **Áp dụng khi nào:**
@@ -91,31 +91,26 @@ Mọi phản hồi chính (khi cung cấp kế hoạch hoặc mã nguồn) phả
 3.  `Phần 3: Hướng dẫn Hành động & Lệnh Git`
 4.  `Phần 4: Kết quả Kỳ vọng & Cảnh báo`
 
-### 4.1. Bước 1: Khởi động & Phân loại (Phản hồi đầu tiên)
-Sau mỗi yêu cầu mới, phản hồi đầu tiên của AI phải bao gồm:
-1.  **Tiếp nhận & Kiểm tra File:** Xác nhận nhiệm vụ và trạng thái truy cập các file nguồn liên quan. Nếu không truy cập được, AI sẽ dừng lại và yêu cầu người dùng cung cấp.
-2.  **Kiểm tra Trạng thái Phiên bản:** Đưa ra phiên bản hiện tại và phiên bản đề xuất.
-3.  **Phân loại Công khai:** AI phải tuyên bố rõ ràng: **"Đây là một thay đổi nhỏ"** hoặc **"Đây là một thay đổi lớn/phức tạp"**.
-    * Nếu là **thay đổi nhỏ**, AI sẽ tiếp tục trình bày **Bước 3** trong cùng một phản hồi.
-    * Nếu là **thay đổi lớn**, AI sẽ trình bày **Bước 2** và dừng lại chờ phê duyệt.
+### 4.1. Quy tắc "Làm mới Ngữ cảnh"
+* Trước mỗi lần cung cấp mã nguồn, AI phải nêu rõ phiên bản file đang được sử dụng làm cơ sở.
+* **Ví dụ:** "Phân tích và mã nguồn dưới đây được dựa trên file `[tên-file]` phiên bản `[số-phiên-bản]`."
+* Điều này hoạt động như một lời nhắc để người dùng cung cấp phiên bản mới hơn nếu cần, đảm bảo AI không làm việc trên thông tin cũ.
 
-### 4.2. Bước 2: Phân tích & Kế hoạch Chi tiết (Chỉ dành cho thay đổi lớn)
-* **Kích hoạt:** Khi nhiệm vụ được phân loại là "thay đổi lớn".
-* **Hành động:** AI trình bày một bản phân tích sâu về yêu cầu, các phương án, và kế hoạch thực thi chi tiết. Kết thúc bằng việc **xin phê duyệt** kế hoạch từ người dùng.
+### 4.2. Luồng làm việc cho Thay đổi Lớn / Phức tạp
+* **Áp dụng khi:** Yêu cầu mang tính ý tưởng, chiến lược, hoặc ảnh hưởng đến nhiều file.
+* **Quy trình:** Giữ nguyên quy trình 2 giai đoạn an toàn:
+    1.  **Giai đoạn 1 - Phân tích & Xin Phê duyệt:** AI trình bày kế hoạch chi tiết và chờ người dùng đồng ý.
+    2.  **Giai đoạn 2 - Thực thi & Phát hành:** Sau khi được phê duyệt, AI cung cấp mã nguồn, hướng dẫn kiểm thử, và sau khi người dùng xác nhận OK, AI sẽ cung cấp các bước để hoàn tất phát hành.
 
-### 4.3. Bước 3: Thực thi (Phản hồi chính)
-* **Kích hoạt:** Ngay lập tức (đối với thay đổi nhỏ) hoặc sau khi kế hoạch được phê duyệt (đối với thay đổi lớn).
-* **Hành động:** AI trình bày một phản hồi đầy đủ theo **Cấu trúc 4 Phần**, trong đó:
-    * `Phần 2` sẽ chứa mã nguồn (tuân thủ **Mục 3.5**).
-    * `Phần 3` **luôn bắt đầu** bằng lệnh `git checkout -b` để tạo nhánh mới. Sau đó là các hướng dẫn cài đặt, kiểm thử và cuối cùng là lệnh `git commit` cho **tính năng** (ví dụ: `git commit -m "feat: add new button"`).
+### 4.3. Luồng làm việc cho Thay đổi Nhỏ / Sửa lỗi (Tối giản)
+* **Áp dụng khi:** Sửa một lỗi cụ thể, tinh chỉnh giao diện, hoặc các thay đổi nhỏ khác trong một file.
+* **Quy trình:**
+    1.  **Phản hồi #1 - Cung cấp Giải pháp:** AI cung cấp một phản hồi bao gồm:
+        * Tạo nhánh làm việc mới (`git checkout -b ...`).
+        * Cung cấp mã nguồn `hotfix`.
+        * Kết thúc bằng một câu hỏi xác nhận duy nhất: "Bạn vui lòng áp dụng và kiểm tra. Nó đã hoạt động đúng như kỳ vọng chưa?"
+    2.  **Phản hồi #2 - Hoàn tất (Chỉ sau khi người dùng xác nhận OK):**
+        * AI cung cấp các bước còn lại: `git commit` cho tính năng, và toàn bộ quy trình phát hành (chạy `release.py`, cập nhật `CHANGELOG.md`, commit `release`).
 
-### 4.4. Bước 4: Hoàn tất & Phát hành
-* **Kích hoạt:** Sau khi người dùng xác nhận tính năng ở Bước 3 đã hoạt động đúng như kỳ vọng.
-* **Hành động:** Phản hồi tiếp theo của AI **chỉ tập trung** vào việc hướng dẫn người dùng hoàn tất quy trình phát hành (theo mục 3.6):
-    1.  Hướng dẫn chạy `python scripts/release.py`.
-    2.  Cung cấp nội dung để cập nhật vào `CHANGELOG.md`.
-    3.  Cung cấp lệnh `git commit` cho việc **phát hành** (`git commit -m "release: version X.Y.Z"`).
-    4.  Nhắc nhở về việc **Tạo Pull Request**, **Hợp nhất (Merge)**, và **Xóa nhánh**.
-
-### 4.5. Cơ chế "Reset"
+### 4.4. Cơ chế "Reset"
 * Khi AI vi phạm quy tắc, người dùng sẽ sử dụng từ khóa `CHECK-WORKFLOW` để yêu cầu AI dừng lại và rà soát lại quy trình trong file này.
