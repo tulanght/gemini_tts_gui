@@ -6,7 +6,7 @@
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
 from .thumbnail_preview import ThumbnailPreviewWindow
-
+import re
 class EditorialAssistantTab(ttk.Frame):
     def __init__(self, parent, db_manager, main_app_instance):
         super().__init__(parent, padding="10")
@@ -164,16 +164,64 @@ class EditorialAssistantTab(ttk.Frame):
             self.main_app.log_message(f"[ERROR] Lỗi bóc tách thumbnail: {e}")
             return []
     
+    # hotfix - 2025-07-24 - Sửa lỗi logic bóc tách hook bị rỗng
     def _parse_hooks(self, text: str) -> list[str]:
-        """Bóc tách các đoạn hook, thường được đánh dấu bằng số."""
+        """Bóc tách các đoạn hook, được phân tách bằng 'Lựa chọn [số]:'."""
         self.main_app.log_message("Bắt đầu bóc tách Hook mở đầu...")
-        # Đây là một logic giả định, có thể cần tinh chỉnh
-        import re
-        # Tìm các dòng bắt đầu bằng số theo sau là dấu chấm hoặc ngoặc
-        hooks = re.findall(r'^\d[\.\)]\s*(.*)', text, re.MULTILINE)
-        cleaned_hooks = [hook.strip() for hook in hooks if hook.strip()]
-        self.main_app.log_message(f"Hoàn tất. Tìm thấy {len(cleaned_hooks)} hook hợp lệ.")
-        return cleaned_hooks
+        try:
+            # Tách văn bản dựa trên mẫu "Lựa chọn [số]:"
+            parts = re.split(r'(?i)\s*Lựa chọn \d+:', text)
+            
+            hooks = []
+            # Bỏ qua phần tử đầu tiên (thường là phần giới thiệu)
+            for part in parts[1:]:
+                if not part.strip():
+                    continue
+                
+                # Xóa phần chú thích trong ngoặc đơn ở đầu (nếu có)
+                # Ví dụ: "(Tập trung vào...) Nội dung chính" -> "Nội dung chính"
+                cleaned_part = re.sub(r'^\(.*\)\s*', '', part.strip(), flags=re.DOTALL)
+                hooks.append(cleaned_part.strip())
+            
+            self.main_app.log_message(f"Hoàn tất. Tìm thấy {len(hooks)} hook hợp lệ.")
+            return hooks
+        except Exception as e:
+            self.main_app.log_message(f"[ERROR] Lỗi khi bóc tách hook: {e}")
+            return []
+
+    # hotfix - 2025-07-24 - Cập nhật để tự động nhận dạng và xử lý Hook
+    def parse_input_text(self):
+        full_text = self.assistant_input_text.get("1.0", tk.END)
+        lower_full_text = full_text.lower() # Chuyển thành chữ thường một lần để kiểm tra
+        if not full_text.strip():
+            messagebox.showwarning("Thông báo", "Vùng nhập liệu đang trống.", parent=self)
+            return
+
+        # Tự động nhận diện chế độ
+        if "kịch bản thumbnail" in lower_full_text or "phong cách:" in lower_full_text:
+            mode = "thumbnail"
+            self.sub_notebook.select(self.thumbnail_tab)
+        elif "hook" in lower_full_text and "lựa chọn 1" in lower_full_text:
+             mode = "hook"
+             self.sub_notebook.select(self.hook_tab)
+        else:
+            mode = "title"
+            self.sub_notebook.select(self.title_tab)
+
+        if mode == "title":
+            cleaned_options = self._parse_titles(full_text)
+        elif mode == "thumbnail":
+            cleaned_options = self._parse_thumbnails(full_text)
+        else: # mode == "hook"
+            cleaned_options = self._parse_hooks(full_text)
+        
+        if not cleaned_options:
+            messagebox.showinfo("Không tìm thấy", "Không thể bóc tách được lựa chọn nào.", parent=self)
+            return
+
+        self._full_options_text = cleaned_options
+        self.display_parsed_options(cleaned_options)
+        messagebox.showinfo("Hoàn tất", f"Đã bóc tách {len(cleaned_options)} lựa chọn theo chế độ '{mode}'.", parent=self)
 
     def parse_input_text(self):
         full_text = self.assistant_input_text.get("1.0", tk.END)
