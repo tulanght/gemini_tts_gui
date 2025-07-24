@@ -3,6 +3,15 @@
 Tất cả các thay đổi đáng chú ý của dự án sẽ được ghi lại tại đây.
 Dự án này tuân theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.11.0] - 2025-07-24
+
+### ✨ Tính năng mới (Features)
+- **Hoàn thiện Tab Trợ lý Biên tập:** Bổ sung logic tự động nhận dạng và bóc tách các lựa chọn "Hook" mở đầu từ văn bản đầu vào, hoàn thiện luồng làm việc cho cả ba loại nội dung (Tiêu đề, Thumbnail, Hook).
+
+### 🐛 Sửa lỗi (Bug Fixes)
+- **Logic bóc tách Hook:** Sửa lỗi logic trong hàm `_parse_hooks` để đảm bảo nội dung của các lựa chọn hook được trích xuất đầy đủ và chính xác.
+
+
 ## [1.10.1] - 2025-07-24
 
 ### 🐛 Sửa lỗi (Bug Fixes)
