@@ -23,24 +23,30 @@ class SettingsTab(ttk.Frame):
 
         self._create_widgets()
 
+    # hotfix - 2025-07-24 - Sắp xếp lại layout của API key cho nhỏ gọn
     def _create_widgets(self):
         self.columnconfigure(0, weight=1)
 
         # --- Mục 1: API Key Management ---
         api_keys_frame = ttk.LabelFrame(self, text="API Key Management", padding="10")
         api_keys_frame.grid(row=0, column=0, padx=5, pady=10, sticky="ew")
+        # Cấu hình cột để Entry chiếm nhiều không gian hơn
         api_keys_frame.columnconfigure(1, weight=1)
+        api_keys_frame.columnconfigure(3, weight=2)
+        
         for i in range(NUM_API_KEYS):
-            ttk.Label(api_keys_frame, text=f"Label API Key {i+1}:").grid(row=i*2, column=0, padx=5, pady=(10,2), sticky="w")
-            label_entry = ttk.Entry(api_keys_frame, textvariable=self.main_app.api_label_vars[i], width=40)
-            label_entry.grid(row=i*2, column=1, columnspan=2, padx=5, pady=(10,2), sticky="ew")
-            ttk.Label(api_keys_frame, text=f"API Key {i+1}:").grid(row=i*2+1, column=0, padx=5, pady=2, sticky="w")
-            key_entry = ttk.Entry(api_keys_frame, textvariable=self.main_app.api_key_vars[i], width=50, show="*")
-            key_entry.grid(row=i*2+1, column=1, columnspan=2, padx=5, pady=2, sticky="ew")
+            # Gộp thành 1 hàng, 4 cột
+            label_of_label = ttk.Label(api_keys_frame, text=f"Label {i+1}:")
+            label_of_label.grid(row=i, column=0, padx=(0,5), pady=5, sticky="w")
 
-        # --- Mục 2: General Settings (Sẽ được thêm sau) ---
-        # general_settings_frame = ttk.LabelFrame(self, text="General Settings", padding="10")
-        # general_settings_frame.grid(row=1, column=0, padx=5, pady=10, sticky="ew")
+            label_entry = ttk.Entry(api_keys_frame, textvariable=self.main_app.api_label_vars[i])
+            label_entry.grid(row=i, column=1, padx=5, pady=5, sticky="ew")
+
+            label_of_key = ttk.Label(api_keys_frame, text=f"API Key {i+1}:")
+            label_of_key.grid(row=i, column=2, padx=(10,5), pady=5, sticky="w")
+
+            key_entry = ttk.Entry(api_keys_frame, textvariable=self.main_app.api_key_vars[i], show="*")
+            key_entry.grid(row=i, column=3, padx=5, pady=5, sticky="ew")
 
         # --- Mục 3: Google Drive Sync ---
         self._create_gdrive_settings_widgets()
