@@ -229,3 +229,13 @@ class LongFormComposerTab(ttk.Frame):
             self.main_app._check_and_update_project_status_color()
         else:
             messagebox.showerror("Thất bại", "Có lỗi xảy ra khi lưu truyện vào CSDL.")
+            
+    # hotfix - 2025-07-24 - Thêm hàm công khai để chèn văn bản vào đầu bản thảo
+    def insert_text_at_start(self, text_to_insert):
+        """Chèn một đoạn văn bản vào đầu ô soạn thảo."""
+        current_content = self.composer_text.get("1.0", tk.END).strip()
+        separator = "\n\n" if current_content else ""
+        
+        # Chèn hook và hai dòng mới để phân tách rõ ràng
+        self.composer_text.insert("1.0", text_to_insert + separator)
+        self.update_composer_counter()
