@@ -3,7 +3,11 @@
 Tất cả các thay đổi đáng chú ý của dự án sẽ được ghi lại tại đây.
 Dự án này tuân theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-<<<<<<< HEAD
+## [1.10.1] - 2025-07-24
+
+### 🐛 Sửa lỗi (Bug Fixes)
+- **Giao diện Tab Cài đặt:** Sắp xếp lại bố cục khu vực API Key thành dạng hàng ngang nhỏ gọn để tối ưu không gian hiển thị.
+
 ## [1.10.0] - 2025-07-24
 
 ### ✨ Tính năng mới (Features)
@@ -17,12 +21,7 @@ Dự án này tuân theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ### 🐛 Sửa lỗi (Bug Fixes)
 - **Giao diện Chính:** Sắp xếp lại thứ tự `pack()` của các widget chính trong `main_app.py` để khắc phục triệt để lỗi khu vực "Nhật ký Hoạt động" và "Thanh Trạng thái" bị che khuất.
-=======
-## [1.10.1] - 2025-07-24
 
-### 🐛 Sửa lỗi (Bug Fixes)
-- **Giao diện Tab Cài đặt:** Sắp xếp lại bố cục khu vực API Key thành dạng hàng ngang nhỏ gọn để tối ưu không gian hiển thị.
->>>>>>> 528e05f (release: version 1.10.1)
 
 
 ## [1.9.0] - 2025-07-23

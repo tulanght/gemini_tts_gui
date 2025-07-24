@@ -1,7 +1,7 @@
 # src/gemini_tts_app/constants.py
 # Phiên bản: constants_v8.0 - Tái cấu trúc PREDEFINED_READING_STYLES thành từ điển đa ngôn ngữ.
 APP_NAME = "Gemini Creative Suite"
-APP_VERSION = "1.10.1"
+APP_VERSION = "1.10.11"
 APP_AUTHOR = "Cuong Tran" 
 
 # --- API Key Settings ---
