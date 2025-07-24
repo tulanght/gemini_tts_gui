@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 # Gemini Creative Suite v1.10.0
+=======
+# Gemini Creative Suite v1.10.1
+>>>>>>> 528e05f (release: version 1.10.1)
 
 **[Xem Lịch sử Thay đổi (Changelog)](CHANGELOG.md) | [Xem Lộ trình Phát triển (Roadmap)](ROADMAP.md) | [Xem Quy trình Làm việc (Workflow)](WORKFLOW.md) | [Ghi chú Kỹ thuật](TECHNICAL_NOTES.md)**
 
