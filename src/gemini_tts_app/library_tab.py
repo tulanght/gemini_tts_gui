@@ -1,38 +1,62 @@
 # file-path: src/gemini_tts_app/library_tab.py
-# version: 8.3
-# last-updated: 2025-07-22
-# description: Tối ưu lại độ rộng các cột trong Treeview để ưu tiên không gian cho cột "Nội dung Truyện".
+# version: 9.0
+# last-updated: 2025-07-24
+# description: Tích hợp cửa sổ Tìm kiếm & Thay thế vào EditWindow.
 
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog, scrolledtext
 import threading
-import re # Import thư viện regex
+import re
+
+# --- IMPORT MỚI ---
+from .find_replace_dialog import FindReplaceDialog
 
 from . import google_api_handler
 from .settings_manager import load_project_groups
 from .database import DatabaseManager
 
+# hotfix - 2025-07-24 - Thêm phím tắt Ctrl+F để mở cửa sổ Tìm & Thay thế
 class EditWindow(tk.Toplevel):
     def __init__(self, parent, title, initial_text=""):
         super().__init__(parent)
         self.title(title)
-        self.geometry("600x400")
+        self.geometry("700x500")
         self.transient(parent)
         self.grab_set()
         self.new_content = None
+        self.find_replace_window = None
+
         main_frame = ttk.Frame(self, padding="10")
         main_frame.pack(expand=True, fill="both")
         main_frame.rowconfigure(0, weight=1)
         main_frame.columnconfigure(0, weight=1)
+
         self.text_widget = scrolledtext.ScrolledText(main_frame, wrap=tk.WORD, font=("Segoe UI", 10))
         self.text_widget.grid(row=0, column=0, columnspan=2, sticky="nsew")
         self.text_widget.insert("1.0", initial_text)
+
         button_frame = ttk.Frame(main_frame)
-        button_frame.grid(row=1, column=0, columnspan=2, pady=(10, 0), sticky="e")
+        button_frame.grid(row=1, column=0, columnspan=2, pady=(10, 0), sticky="ew")
+        button_frame.columnconfigure(0, weight=1)
+        
+        find_replace_button = ttk.Button(button_frame, text="Tìm & Thay thế (Ctrl+F)...", command=self._open_find_replace)
+        find_replace_button.pack(side="left")
+
         ok_button = ttk.Button(button_frame, text="Lưu thay đổi", command=self._on_ok)
         ok_button.pack(side="right")
         cancel_button = ttk.Button(button_frame, text="Hủy", command=self.destroy)
         cancel_button.pack(side="right", padx=10)
+
+        # --- THÊM MỚI: Bắt sự kiện phím tắt Ctrl+F ---
+        self.bind("<Control-f>", self._open_find_replace)
+        self.text_widget.bind("<Control-f>", self._open_find_replace) # Bắt cả khi focus ở ô text
+
+
+    def _open_find_replace(self, event=None): # Thêm event=None để nhận sự kiện bind
+        if self.find_replace_window and self.find_replace_window.winfo_exists():
+            self.find_replace_window.lift()
+            return
+        self.find_replace_window = FindReplaceDialog(self, target_widget=self.text_widget)
 
     def _on_ok(self):
         self.new_content = self.text_widget.get("1.0", "end-1c").strip()
