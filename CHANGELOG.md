@@ -3,6 +3,16 @@
 Tất cả các thay đổi đáng chú ý của dự án sẽ được ghi lại tại đây.
 Dự án này tuân theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.12.0] - 2025-07-24
+
+### ✨ Tính năng mới (Features)
+- **Tích hợp Công cụ Tìm & Thay thế:**
+    - Xây dựng module `find_replace_dialog.py` chuyên trách cho việc tìm kiếm và thay thế.
+    - Tích hợp cửa sổ "Tìm & Thay thế" vào trình soạn thảo truyện trong tab Thư viện.
+    - Hỗ trợ đầy đủ các chức năng: tìm kiếm, thay thế, thay thế tất cả, phân biệt chữ hoa/thường, và tìm kiếm toàn bộ từ.
+    - Bổ sung bộ đếm kết quả và tự động tô sáng (highlight) kết quả tìm thấy để cải thiện trải nghiệm người dùng.
+    - Thêm phím tắt `Ctrl+F` để mở nhanh công cụ.
+
 ## [1.11.0] - 2025-07-24
 
 ### ✨ Tính năng mới (Features)
