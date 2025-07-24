@@ -3,6 +3,15 @@
 Tất cả các thay đổi đáng chú ý của dự án sẽ được ghi lại tại đây.
 Dự án này tuân theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.13.0] - 2025-07-24
+
+### ✨ Tính năng mới (Features)
+- **Hoàn thiện Tính năng Chèn Hook:**
+    - Tích hợp nút "Chèn vào đầu truyện" vào tab "Hook" của Trợ lý Biên tập.
+    - Bổ sung logic cảnh báo thông minh, hỏi người dùng xác nhận trước khi chèn hook vào một dự án đã có sẵn nội dung truyện, giúp tránh sai sót.
+    - Hoàn thiện luồng tương tác giữa các module tab để chèn hook và tự động chuyển đến tab "Soạn Truyện Dài".
+
+
 ## [1.12.0] - 2025-07-24
 
 ### ✨ Tính năng mới (Features)

@@ -70,6 +70,7 @@ class EditorialAssistantTab(ttk.Frame):
         self.sub_notebook.add(self.thumbnail_tab, text="Thumbnail")
         self.sub_notebook.add(self.hook_tab, text="Hook")
 
+    # hotfix - 2025-07-24 - Thêm nút "Chèn vào đầu truyện" và logic cảnh báo
     def _create_editor_sub_tab(self, name, mode_value):
         frame = ttk.Frame(self.sub_notebook, padding="10")
         frame.columnconfigure(0, weight=1)
@@ -85,14 +86,19 @@ class EditorialAssistantTab(ttk.Frame):
         counter_label = ttk.Label(action_frame, text="Ký tự: 0 | Từ: 0", font=("Segoe UI", 10))
         counter_label.grid(row=0, column=0, sticky="w", padx=5)
 
+        # --- THAY ĐỔI TẠI ĐÂY ---
         if mode_value == "thumbnail":
             preview_button = ttk.Button(action_frame, text="Xem trước Thumbnail", command=lambda: self.show_thumbnail_preview(editor_text))
             preview_button.grid(row=0, column=1, sticky="e", padx=5)
 
-        save_button = ttk.Button(action_frame, text=f"Chốt & Lưu {name}", state=tk.DISABLED, command=lambda: self.save_final_version(editor_text, mode_value), style="Accent.TButton")
-        save_button.grid(row=0, column=2, sticky="e", padx=5)
+        if mode_value == "hook":
+            # Thêm nút đặc biệt cho Hook
+            insert_button = ttk.Button(action_frame, text="🚀 Chèn vào đầu truyện", command=lambda: self._insert_hook_into_story(editor_text), style="Accent.TButton")
+            insert_button.grid(row=0, column=2, sticky="e", padx=5)
 
-        # Lưu các widget vào instance để có thể truy cập sau này
+        save_button = ttk.Button(action_frame, text=f"Chốt & Lưu {name}", state=tk.DISABLED, command=lambda: self.save_final_version(editor_text, mode_value))
+        save_button.grid(row=0, column=3, sticky="e", padx=5) # Cập nhật lại vị trí cột
+
         frame.editor_text = editor_text
         frame.counter_label = counter_label
         frame.save_button = save_button
@@ -100,6 +106,19 @@ class EditorialAssistantTab(ttk.Frame):
         editor_text.bind("<KeyRelease>", lambda event, f=frame, m=mode_value: self.update_editor_metrics(event, f, m))
 
         return frame
+
+    def _insert_hook_into_story(self, editor_widget):
+        hook_content = editor_widget.get("1.0", tk.END).strip()
+        if not hook_content:
+            messagebox.showwarning("Nội dung trống", "Không có nội dung hook để chèn.", parent=self)
+            return
+        
+        if not self.main_app.active_project_id:
+            messagebox.showwarning("Chưa có Dự án hoạt động", "Vui lòng vào tab 'Thư viện' và chọn một dự án để làm việc trước.", parent=self)
+            return
+
+        # Gọi hàm kiểm tra trong main_app
+        self.main_app.insert_hook_with_warning(hook_content)
         
     def get_current_editor_frame(self):
         """Lấy frame của tab con đang được chọn."""

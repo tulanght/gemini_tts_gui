@@ -153,6 +153,36 @@ class TTSApp:
         else:
             messagebox.showwarning("Không có Nội dung", "Dự án này chưa có nội dung truyện.", parent=self.root)
 
+    # hotfix - 2025-07-24 - Thêm hàm điều phối để chèn hook với cảnh báo
+    def insert_hook_with_warning(self, hook_content):
+        """Kiểm tra truyện hiện tại và hiển thị cảnh báo trước khi chèn hook."""
+        if not self.active_project_id:
+            return # An toàn kép
+
+        # Lấy nội dung truyện hiện tại từ CSDL
+        items = self.db_manager.get_items_for_project(self.active_project_id)
+        story_content = ""
+        for item in items:
+            if item['type'] == 'Story':
+                story_content = item['content']
+                break
+        
+        # Hiển thị cảnh báo nếu truyện đã có nội dung
+        if story_content.strip():
+            user_choice = messagebox.askyesno(
+                "Cảnh báo",
+                "Dự án này đã có nội dung truyện. Bạn có chắc chắn muốn chèn hook này vào đầu truyện không?\n\n(Gợi ý: Hãy kiểm tra để tránh chèn trùng lặp hook đã có sẵn).",
+                parent=self.root
+            )
+            if not user_choice:
+                self.log_message("Người dùng đã hủy bỏ thao tác chèn hook.")
+                return
+
+        # Nếu không có nội dung hoặc người dùng đồng ý, tiến hành chèn
+        self.composer_tab.insert_text_at_start(hook_content)
+        self.notebook.select(self.composer_tab)
+        self.log_message("Đã chèn hook vào đầu bản thảo.")
+    
     def on_closing(self):
         if hasattr(self.composer_tab, 'is_monitoring_clipboard') and self.composer_tab.is_monitoring_clipboard:
             self.composer_tab.is_monitoring_clipboard = False
