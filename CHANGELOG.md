@@ -3,6 +3,15 @@
 Tất cả các thay đổi đáng chú ý của dự án sẽ được ghi lại tại đây.
 Dự án này tuân theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.14.1] - 2025-07-31
+
+### 🐛 Sửa lỗi (Bug Fixes)
+- **Logic Trợ lý Biên tập:**
+    - Khắc phục lỗi logic nhận dạng khiến input "Tiêu đề" bị xử lý nhầm thành "Hook".
+    - Sửa lỗi logic tra cứu trong hàm `save_final_version` để đảm bảo có thể lưu Tiêu đề, Thumbnail, Hook vào dự án đang hoạt động.
+    - Bổ sung logic kiểm tra độ dài tiêu đề (tối đa 100 ký tự) trước khi cho phép lưu để đảm bảo tuân thủ quy định của YouTube.
+
+
 ## [1.14.0] - 2025-07-30
 
 ### 📝 Tài liệu (Documentation)
