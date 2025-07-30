@@ -2,11 +2,15 @@
 # version: 1.1
 # last-updated: 2025-07-30
 # description: Sửa lỗi logic nhận dạng, xóa hàm parse_input_text bị trùng lặp.
+# version: 1.1
+# last-updated: 2025-07-30
+# description: Sửa lỗi logic nhận dạng, xóa hàm parse_input_text bị trùng lặp.
 
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
 from .thumbnail_preview import ThumbnailPreviewWindow
 import re
+
 
 class EditorialAssistantTab(ttk.Frame):
     def __init__(self, parent, db_manager, main_app_instance):
@@ -88,6 +92,7 @@ class EditorialAssistantTab(ttk.Frame):
 
         save_button = ttk.Button(action_frame, text=f"Chốt & Lưu {name}", state=tk.DISABLED, command=lambda: self.save_final_version(editor_text, mode_value))
         save_button.grid(row=0, column=3, sticky="e", padx=5)
+        save_button.grid(row=0, column=3, sticky="e", padx=5)
 
         frame.editor_text = editor_text
         frame.counter_label = counter_label
@@ -113,8 +118,22 @@ class EditorialAssistantTab(ttk.Frame):
             elif selected_tab_index == 1: return self.thumbnail_tab
             elif selected_tab_index == 2: return self.hook_tab
         except tk.TclError: return None
+            if selected_tab_index == 0: return self.title_tab
+            elif selected_tab_index == 1: return self.thumbnail_tab
+            elif selected_tab_index == 2: return self.hook_tab
+        except tk.TclError: return None
         return None
 
+    # hotfix - 2025-07-30 - Cập nhật logic để bóc tách định dạng tiêu đề mới của Gemini
+    def _parse_titles(self, text: str) -> list[str]:
+        """Bóc tách các lựa chọn tiêu đề từ định dạng mới (danh sách có số và trích dẫn)."""
+        self.main_app.log_message("Bắt đầu bóc tách tiêu đề (logic mới)...")
+        try:
+            # Regex để tìm tất cả các chuỗi nằm trong dấu ngoặc kép "" ở đầu dòng
+            titles = re.findall(r'^\s*"(.+?)"\s*$', text, re.MULTILINE)
+            cleaned_titles = [title.strip() for title in titles if title.strip()]
+            self.main_app.log_message(f"Hoàn tất. Tìm thấy {len(cleaned_titles)} tiêu đề hợp lệ.")
+            return cleaned_titles
     # hotfix - 2025-07-30 - Cập nhật logic để bóc tách định dạng tiêu đề mới của Gemini
     def _parse_titles(self, text: str) -> list[str]:
         """Bóc tách các lựa chọn tiêu đề từ định dạng mới (danh sách có số và trích dẫn)."""
@@ -136,6 +155,7 @@ class EditorialAssistantTab(ttk.Frame):
             cleaned_options = []
             for block in blocks[1:]:
                 if not block.strip(): continue
+                if not block.strip(): continue
                 script_lines = []
                 for line in block.strip().split('\n'):
                     stripped_line = line.strip()
@@ -143,6 +163,7 @@ class EditorialAssistantTab(ttk.Frame):
                     is_style_line = '(phong cách' in stripped_line.lower()
                     if is_bolded and not is_style_line:
                         clean_line = stripped_line.replace('**', '').strip()
+                        if clean_line: script_lines.append(clean_line)
                         if clean_line: script_lines.append(clean_line)
                 if script_lines:
                     full_script = "\n".join(script_lines)
@@ -160,6 +181,7 @@ class EditorialAssistantTab(ttk.Frame):
             hooks = []
             for part in parts[1:]:
                 if not part.strip(): continue
+                if not part.strip(): continue
                 cleaned_part = re.sub(r'^\(.*\)\s*', '', part.strip(), flags=re.DOTALL)
                 hooks.append(cleaned_part.strip())
             self.main_app.log_message(f"Hoàn tất. Tìm thấy {len(hooks)} hook hợp lệ.")
@@ -169,8 +191,10 @@ class EditorialAssistantTab(ttk.Frame):
             return []
 
     # hotfix - 2025-07-30 - Sửa lỗi logic nhận dạng Hook, làm cho điều kiện chặt chẽ hơn
+    # hotfix - 2025-07-30 - Sửa lỗi logic nhận dạng Hook, làm cho điều kiện chặt chẽ hơn
     def parse_input_text(self):
         full_text = self.assistant_input_text.get("1.0", tk.END)
+        lower_full_text = full_text.lower()
         lower_full_text = full_text.lower()
         if not full_text.strip():
             messagebox.showwarning("Thông báo", "Vùng nhập liệu đang trống.", parent=self)
@@ -178,13 +202,18 @@ class EditorialAssistantTab(ttk.Frame):
 
         # Logic nhận dạng chính xác và có thứ tự ưu tiên
         # 1. Kiểm tra Thumbnail (dễ nhận biết nhất)
+        # Logic nhận dạng chính xác và có thứ tự ưu tiên
+        # 1. Kiểm tra Thumbnail (dễ nhận biết nhất)
         if "kịch bản thumbnail" in lower_full_text or "phong cách:" in lower_full_text:
             mode = "thumbnail"
             self.sub_notebook.select(self.thumbnail_tab)
         # 2. Kiểm tra Hook (với điều kiện chặt chẽ hơn)
         elif ("hook mở đầu" in lower_full_text or "lựa chọn hook" in lower_full_text) and "lựa chọn 1" in lower_full_text:
+        # 2. Kiểm tra Hook (với điều kiện chặt chẽ hơn)
+        elif ("hook mở đầu" in lower_full_text or "lựa chọn hook" in lower_full_text) and "lựa chọn 1" in lower_full_text:
              mode = "hook"
              self.sub_notebook.select(self.hook_tab)
+        # 3. Mặc định là Tiêu đề
         # 3. Mặc định là Tiêu đề
         else:
             mode = "title"
@@ -207,11 +236,11 @@ class EditorialAssistantTab(ttk.Frame):
         self.display_parsed_options(cleaned_options)
         messagebox.showinfo("Hoàn tất", f"Đã bóc tách {len(cleaned_options)} lựa chọn theo chế độ '{mode}'.", parent=self)
 
-
     def display_parsed_options(self, options):
         self.options_display_text.config(state=tk.NORMAL)
         self.options_display_text.delete("1.0", tk.END)
         for tag in self.options_display_text.tag_names():
+            if tag.startswith("option_"): self.options_display_text.tag_delete(tag)
             if tag.startswith("option_"): self.options_display_text.tag_delete(tag)
 
         separator = "\n" + ("-" * 40) + "\n\n"
@@ -220,10 +249,12 @@ class EditorialAssistantTab(ttk.Frame):
             start_index = self.options_display_text.index(tk.END)
             display_header = f"--- LỰA CHỌN {i+1} ---\n"
             self.options_display_text.insert(tk.END, display_header)
+            self.options_display_text.insert(tk.END, display_header)
             self.options_display_text.insert(tk.END, option_text)
             end_index = self.options_display_text.index(tk.END)
             self.options_display_text.tag_add(tag_name, start_index, f"{end_index}-1c")
             self.options_display_text.tag_bind(tag_name, "<Button-1>", lambda e, index=i: self.on_text_option_clicked(e, index))
+            if i < len(options) - 1: self.options_display_text.insert(tk.END, separator)
             if i < len(options) - 1: self.options_display_text.insert(tk.END, separator)
         self.options_display_text.config(state=tk.DISABLED)
 
@@ -231,6 +262,7 @@ class EditorialAssistantTab(ttk.Frame):
         current_frame = self.get_current_editor_frame()
         if not current_frame: return
         for tag in self.options_display_text.tag_names():
+            if tag.startswith("option_"): self.options_display_text.tag_configure(tag, background="white")
             if tag.startswith("option_"): self.options_display_text.tag_configure(tag, background="white")
         tag_name = f"option_{index}"
         self.options_display_text.tag_configure(tag_name, background="lightblue")
@@ -247,6 +279,7 @@ class EditorialAssistantTab(ttk.Frame):
         )
         content = frame.editor_text.get("1.0", tk.END).strip()
         char_count = len(content); word_count = len(content.split()) if content else 0
+        char_count = len(content); word_count = len(content.split()) if content else 0
         line_count = len([line for line in content.splitlines() if line.strip()])
         label_text, label_color, button_state = "", COLOR_NORMAL, tk.DISABLED
         if mode == "tiêu đề":
@@ -256,7 +289,12 @@ class EditorialAssistantTab(ttk.Frame):
             elif char_count > TITLE_CHAR_LIMIT_MAX: label_color = COLOR_ERROR
             else: label_color = COLOR_WARN
         else:
+            elif TITLE_CHAR_LIMIT_GOOD_MIN <= char_count <= TITLE_CHAR_LIMIT_GOOD_MAX: label_color, button_state = COLOR_OK, tk.NORMAL
+            elif char_count > TITLE_CHAR_LIMIT_MAX: label_color = COLOR_ERROR
+            else: label_color = COLOR_WARN
+        else:
             label_text = f"Ký tự: {char_count} | Từ: {word_count} | Dòng: {line_count}"
+            if char_count > 0: label_color, button_state = COLOR_OK, tk.NORMAL
             if char_count > 0: label_color, button_state = COLOR_OK, tk.NORMAL
         frame.counter_label.config(text=label_text, foreground=label_color)
         frame.save_button.config(state=button_state)
@@ -268,7 +306,7 @@ class EditorialAssistantTab(ttk.Frame):
             return
         ThumbnailPreviewWindow(parent=self.winfo_toplevel(), text_content=text_content, log_callback=self.main_app.log_message)
 
-    # hotfix - 2025-07-30 - Sửa lỗi logic tra cứu item_type khiến việc lưu không thành công
+    # hotfix - 2025-07-30 - Bổ sung logic kiểm tra độ dài tiêu đề trước khi lưu
     def save_final_version(self, editor_widget, mode):
         if not self.main_app.active_project_id:
             messagebox.showwarning("Chưa có Dự án hoạt động", "Vui lòng vào tab 'Thư viện' và chọn một dự án để làm việc trước.", parent=self)
@@ -279,13 +317,17 @@ class EditorialAssistantTab(ttk.Frame):
             messagebox.showwarning("Nội dung trống", "Không có nội dung để lưu.", parent=self)
             return
 
-        # THAY ĐỔI TẠI ĐÂY: Sử dụng key tiếng Anh để khớp với giá trị 'mode'
         item_type_map = {"title": "Title", "thumbnail": "Thumbnail", "hook": "Hook"}
-        item_type = item_type_map.get(mode) # Bỏ .lower() vì 'mode' đã chuẩn
+        item_type = item_type_map.get(mode)
         
         if not item_type: 
             self.main_app.log_message(f"[ERROR] Không thể xác định loại mục để lưu. Chế độ nhận được: {mode}")
             return
+
+        # --- LOGIC KIỂM TRA MỚI ---
+        if item_type == "Title" and len(final_text) > 100:
+            messagebox.showwarning("Tiêu đề quá dài", f"Tiêu đề không được vượt quá 100 ký tự.\n(Độ dài hiện tại: {len(final_text)} ký tự)", parent=self)
+            return # Dừng lại, không cho phép lưu
 
         success = self.db_manager.add_or_update_item(self.main_app.active_project_id, item_type, final_text)
 
