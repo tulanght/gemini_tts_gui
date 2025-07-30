@@ -3,6 +3,12 @@
 Tất cả các thay đổi đáng chú ý của dự án sẽ được ghi lại tại đây.
 Dự án này tuân theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.14.0] - 2025-07-30
+
+### 📝 Tài liệu (Documentation)
+- **Khởi tạo Tài liệu Hướng dẫn:** Tạo file `USER_MANUAL.md` và soạn thảo nội dung ban đầu cho các phần Giới thiệu, Cài đặt & Khởi động, và Tổng quan Giao diện.
+
+
 ## [1.13.0] - 2025-07-24
 
 ### ✨ Tính năng mới (Features)
