@@ -1,12 +1,13 @@
 # file-path: src/gemini_tts_app/editorial_assistant_tab.py
-# version: 1.0
-# last-updated: 2025-07-22
-# description: Module chuyên trách cho tab Trợ lý Biên tập, được tái cấu trúc từ main_app.py.
+# version: 1.1
+# last-updated: 2025-07-30
+# description: Sửa lỗi logic nhận dạng, xóa hàm parse_input_text bị trùng lặp.
 
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
 from .thumbnail_preview import ThumbnailPreviewWindow
 import re
+
 class EditorialAssistantTab(ttk.Frame):
     def __init__(self, parent, db_manager, main_app_instance):
         super().__init__(parent, padding="10")
@@ -18,12 +19,10 @@ class EditorialAssistantTab(ttk.Frame):
 
         self._create_widgets()
 
-    # hotfix - 2025-07-24 - Thêm tùy chọn 'uniform' để ép tỉ lệ cột 1:3 hiển thị chính xác
     def _create_widgets(self):
         self.columnconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
 
-        # --- KHUNG NHẬP LIỆU CHUNG ---
         input_pane = ttk.LabelFrame(self, text="1. Dán toàn bộ phản hồi của Gemini tại đây", padding=10)
         input_pane.grid(row=0, column=0, sticky="ew", pady=(0, 10))
         input_pane.rowconfigure(0, weight=1)
@@ -33,16 +32,12 @@ class EditorialAssistantTab(ttk.Frame):
         self.parse_button = ttk.Button(input_pane, text="Bóc Tách & Phân Tích", command=self.parse_input_text, style="Accent.TButton")
         self.parse_button.grid(row=1, column=0, sticky="ew", pady=(10, 0))
 
-        # --- KHU VỰC LÀM VIỆC VỚI CÁC TAB CON ---
         main_work_area = ttk.Frame(self)
         main_work_area.grid(row=1, column=0, sticky="nsew")
-        
-        # THAY ĐỔI TẠI ĐÂY: Thêm 'uniform' để buộc áp dụng tỉ lệ
         main_work_area.columnconfigure(0, weight=1, uniform="group1") 
         main_work_area.columnconfigure(1, weight=3, uniform="group1")
         main_work_area.rowconfigure(0, weight=1)
 
-        # --- KHUNG BÊN TRÁI: DANH SÁCH LỰA CHỌN ---
         list_pane = ttk.LabelFrame(main_work_area, text="2. Các lựa chọn đã được xử lý", padding=10)
         list_pane.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
         list_pane.rowconfigure(0, weight=1)
@@ -52,7 +47,6 @@ class EditorialAssistantTab(ttk.Frame):
         self.options_display_text.tag_configure("highlight", background="lightblue")
         self.options_display_text.config(state=tk.DISABLED)
 
-        # --- KHUNG BÊN PHẢI: SOẠN THẢO VÀ CHỐT PHƯƠNG ÁN ---
         editor_pane = ttk.LabelFrame(main_work_area, text="3. Soạn thảo & Chốt phương án", padding=10)
         editor_pane.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
         editor_pane.rowconfigure(0, weight=1)
@@ -61,7 +55,6 @@ class EditorialAssistantTab(ttk.Frame):
         self.sub_notebook = ttk.Notebook(editor_pane)
         self.sub_notebook.grid(row=0, column=0, columnspan=2, sticky="nsew")
 
-        # Tạo các tab con
         self.title_tab = self._create_editor_sub_tab("Tiêu đề", "title")
         self.thumbnail_tab = self._create_editor_sub_tab("Thumbnail", "thumbnail")
         self.hook_tab = self._create_editor_sub_tab("Hook", "hook")
@@ -70,7 +63,6 @@ class EditorialAssistantTab(ttk.Frame):
         self.sub_notebook.add(self.thumbnail_tab, text="Thumbnail")
         self.sub_notebook.add(self.hook_tab, text="Hook")
 
-    # hotfix - 2025-07-24 - Thêm nút "Chèn vào đầu truyện" và logic cảnh báo
     def _create_editor_sub_tab(self, name, mode_value):
         frame = ttk.Frame(self.sub_notebook, padding="10")
         frame.columnconfigure(0, weight=1)
@@ -86,25 +78,22 @@ class EditorialAssistantTab(ttk.Frame):
         counter_label = ttk.Label(action_frame, text="Ký tự: 0 | Từ: 0", font=("Segoe UI", 10))
         counter_label.grid(row=0, column=0, sticky="w", padx=5)
 
-        # --- THAY ĐỔI TẠI ĐÂY ---
         if mode_value == "thumbnail":
             preview_button = ttk.Button(action_frame, text="Xem trước Thumbnail", command=lambda: self.show_thumbnail_preview(editor_text))
             preview_button.grid(row=0, column=1, sticky="e", padx=5)
 
         if mode_value == "hook":
-            # Thêm nút đặc biệt cho Hook
             insert_button = ttk.Button(action_frame, text="🚀 Chèn vào đầu truyện", command=lambda: self._insert_hook_into_story(editor_text), style="Accent.TButton")
             insert_button.grid(row=0, column=2, sticky="e", padx=5)
 
         save_button = ttk.Button(action_frame, text=f"Chốt & Lưu {name}", state=tk.DISABLED, command=lambda: self.save_final_version(editor_text, mode_value))
-        save_button.grid(row=0, column=3, sticky="e", padx=5) # Cập nhật lại vị trí cột
+        save_button.grid(row=0, column=3, sticky="e", padx=5)
 
         frame.editor_text = editor_text
         frame.counter_label = counter_label
         frame.save_button = save_button
 
         editor_text.bind("<KeyRelease>", lambda event, f=frame, m=mode_value: self.update_editor_metrics(event, f, m))
-
         return frame
 
     def _insert_hook_into_story(self, editor_widget):
@@ -112,59 +101,41 @@ class EditorialAssistantTab(ttk.Frame):
         if not hook_content:
             messagebox.showwarning("Nội dung trống", "Không có nội dung hook để chèn.", parent=self)
             return
-        
         if not self.main_app.active_project_id:
             messagebox.showwarning("Chưa có Dự án hoạt động", "Vui lòng vào tab 'Thư viện' và chọn một dự án để làm việc trước.", parent=self)
             return
-
-        # Gọi hàm kiểm tra trong main_app
         self.main_app.insert_hook_with_warning(hook_content)
         
     def get_current_editor_frame(self):
-        """Lấy frame của tab con đang được chọn."""
         try:
             selected_tab_index = self.sub_notebook.index(self.sub_notebook.select())
-            if selected_tab_index == 0:
-                return self.title_tab
-            elif selected_tab_index == 1:
-                return self.thumbnail_tab
-            elif selected_tab_index == 2:
-                return self.hook_tab
-        except tk.TclError:
-            return None # Không có tab nào được chọn
+            if selected_tab_index == 0: return self.title_tab
+            elif selected_tab_index == 1: return self.thumbnail_tab
+            elif selected_tab_index == 2: return self.hook_tab
+        except tk.TclError: return None
         return None
 
-    def _parse_titles(self, text):
-        # (Nội dung hàm này giữ nguyên như trong main_app.py)
-        cleaned_options = []
+    # hotfix - 2025-07-30 - Cập nhật logic để bóc tách định dạng tiêu đề mới của Gemini
+    def _parse_titles(self, text: str) -> list[str]:
+        """Bóc tách các lựa chọn tiêu đề từ định dạng mới (danh sách có số và trích dẫn)."""
+        self.main_app.log_message("Bắt đầu bóc tách tiêu đề (logic mới)...")
         try:
-            blocks = text.split('---')
-            for block in blocks:
-                if "**Tiêu đề:**" not in block:
-                    continue
-                lines = block.strip().split('\n')
-                for line in lines:
-                    line = line.strip()
-                    if line.startswith("**Tiêu đề:**"):
-                        raw_title = line.split(":", 1)[1]
-                        clean_title = raw_title.replace('**', '').strip()
-                        if clean_title:
-                            cleaned_options.append(clean_title)
-                        break 
-            return cleaned_options
+            # Regex để tìm tất cả các chuỗi nằm trong dấu ngoặc kép "" ở đầu dòng
+            titles = re.findall(r'^\s*"(.+?)"\s*$', text, re.MULTILINE)
+            cleaned_titles = [title.strip() for title in titles if title.strip()]
+            self.main_app.log_message(f"Hoàn tất. Tìm thấy {len(cleaned_titles)} tiêu đề hợp lệ.")
+            return cleaned_titles
         except Exception as e:
             self.main_app.log_message(f"Lỗi trong quá trình bóc tách tiêu đề: {e}")
             return []
 
     def _parse_thumbnails(self, text: str) -> list[str]:
-        # (Nội dung hàm này giữ nguyên như trong main_app.py)
         self.main_app.log_message("Bắt đầu bóc tách kịch bản thumbnail...")
         try:
             blocks = text.split("---")
             cleaned_options = []
             for block in blocks[1:]:
-                if not block.strip():
-                    continue
+                if not block.strip(): continue
                 script_lines = []
                 for line in block.strip().split('\n'):
                     stripped_line = line.strip()
@@ -172,8 +143,7 @@ class EditorialAssistantTab(ttk.Frame):
                     is_style_line = '(phong cách' in stripped_line.lower()
                     if is_bolded and not is_style_line:
                         clean_line = stripped_line.replace('**', '').strip()
-                        if clean_line:
-                            script_lines.append(clean_line)
+                        if clean_line: script_lines.append(clean_line)
                 if script_lines:
                     full_script = "\n".join(script_lines)
                     cleaned_options.append(full_script)
@@ -183,49 +153,44 @@ class EditorialAssistantTab(ttk.Frame):
             self.main_app.log_message(f"[ERROR] Lỗi bóc tách thumbnail: {e}")
             return []
     
-    # hotfix - 2025-07-24 - Sửa lỗi logic bóc tách hook bị rỗng
     def _parse_hooks(self, text: str) -> list[str]:
-        """Bóc tách các đoạn hook, được phân tách bằng 'Lựa chọn [số]:'."""
         self.main_app.log_message("Bắt đầu bóc tách Hook mở đầu...")
         try:
-            # Tách văn bản dựa trên mẫu "Lựa chọn [số]:"
             parts = re.split(r'(?i)\s*Lựa chọn \d+:', text)
-            
             hooks = []
-            # Bỏ qua phần tử đầu tiên (thường là phần giới thiệu)
             for part in parts[1:]:
-                if not part.strip():
-                    continue
-                
-                # Xóa phần chú thích trong ngoặc đơn ở đầu (nếu có)
-                # Ví dụ: "(Tập trung vào...) Nội dung chính" -> "Nội dung chính"
+                if not part.strip(): continue
                 cleaned_part = re.sub(r'^\(.*\)\s*', '', part.strip(), flags=re.DOTALL)
                 hooks.append(cleaned_part.strip())
-            
             self.main_app.log_message(f"Hoàn tất. Tìm thấy {len(hooks)} hook hợp lệ.")
             return hooks
         except Exception as e:
             self.main_app.log_message(f"[ERROR] Lỗi khi bóc tách hook: {e}")
             return []
 
-    # hotfix - 2025-07-24 - Cập nhật để tự động nhận dạng và xử lý Hook
+    # hotfix - 2025-07-30 - Sửa lỗi logic nhận dạng Hook, làm cho điều kiện chặt chẽ hơn
     def parse_input_text(self):
         full_text = self.assistant_input_text.get("1.0", tk.END)
-        lower_full_text = full_text.lower() # Chuyển thành chữ thường một lần để kiểm tra
+        lower_full_text = full_text.lower()
         if not full_text.strip():
             messagebox.showwarning("Thông báo", "Vùng nhập liệu đang trống.", parent=self)
             return
 
-        # Tự động nhận diện chế độ
+        # Logic nhận dạng chính xác và có thứ tự ưu tiên
+        # 1. Kiểm tra Thumbnail (dễ nhận biết nhất)
         if "kịch bản thumbnail" in lower_full_text or "phong cách:" in lower_full_text:
             mode = "thumbnail"
             self.sub_notebook.select(self.thumbnail_tab)
-        elif "hook" in lower_full_text and "lựa chọn 1" in lower_full_text:
+        # 2. Kiểm tra Hook (với điều kiện chặt chẽ hơn)
+        elif ("hook mở đầu" in lower_full_text or "lựa chọn hook" in lower_full_text) and "lựa chọn 1" in lower_full_text:
              mode = "hook"
              self.sub_notebook.select(self.hook_tab)
+        # 3. Mặc định là Tiêu đề
         else:
             mode = "title"
             self.sub_notebook.select(self.title_tab)
+
+        self.main_app.log_message(f"Đã nhận dạng chế độ là: '{mode}'")
 
         if mode == "title":
             cleaned_options = self._parse_titles(full_text)
@@ -235,39 +200,7 @@ class EditorialAssistantTab(ttk.Frame):
             cleaned_options = self._parse_hooks(full_text)
         
         if not cleaned_options:
-            messagebox.showinfo("Không tìm thấy", "Không thể bóc tách được lựa chọn nào.", parent=self)
-            return
-
-        self._full_options_text = cleaned_options
-        self.display_parsed_options(cleaned_options)
-        messagebox.showinfo("Hoàn tất", f"Đã bóc tách {len(cleaned_options)} lựa chọn theo chế độ '{mode}'.", parent=self)
-
-    def parse_input_text(self):
-        full_text = self.assistant_input_text.get("1.0", tk.END)
-        if not full_text.strip():
-            messagebox.showwarning("Thông báo", "Vùng nhập liệu đang trống.", parent=self)
-            return
-
-        # Tự động nhận diện chế độ
-        if "KỊCH BẢN THUMBNAIL" in full_text.upper() or "PHONG CÁCH:" in full_text.upper():
-            mode = "thumbnail"
-            self.sub_notebook.select(self.thumbnail_tab)
-        elif "HOOK" in full_text.upper():
-             mode = "hook"
-             self.sub_notebook.select(self.hook_tab)
-        else:
-            mode = "title"
-            self.sub_notebook.select(self.title_tab)
-
-        if mode == "title":
-            cleaned_options = self._parse_titles(full_text)
-        elif mode == "thumbnail":
-            cleaned_options = self._parse_thumbnails(full_text)
-        else: # mode == "hook"
-            cleaned_options = self._parse_hooks(full_text)
-        
-        if not cleaned_options:
-            messagebox.showinfo("Không tìm thấy", "Không thể bóc tách được lựa chọn nào.", parent=self)
+            messagebox.showinfo("Không tìm thấy", f"Không thể bóc tách được lựa chọn nào ở chế độ '{mode}'.", parent=self)
             return
 
         self._full_options_text = cleaned_options
@@ -277,44 +210,29 @@ class EditorialAssistantTab(ttk.Frame):
     def display_parsed_options(self, options):
         self.options_display_text.config(state=tk.NORMAL)
         self.options_display_text.delete("1.0", tk.END)
-
         for tag in self.options_display_text.tag_names():
-            if tag.startswith("option_"):
-                self.options_display_text.tag_delete(tag)
+            if tag.startswith("option_"): self.options_display_text.tag_delete(tag)
 
         separator = "\n" + ("-" * 40) + "\n\n"
-
         for i, option_text in enumerate(options):
             tag_name = f"option_{i}"
             start_index = self.options_display_text.index(tk.END)
-            
             display_header = f"--- LỰA CHỌN {i+1} ---\n"
-            self.options_display_text.insert(tk.END, display_header, ("h2", "center"))
+            self.options_display_text.insert(tk.END, display_header)
             self.options_display_text.insert(tk.END, option_text)
-            
             end_index = self.options_display_text.index(tk.END)
-            
             self.options_display_text.tag_add(tag_name, start_index, f"{end_index}-1c")
             self.options_display_text.tag_bind(tag_name, "<Button-1>", lambda e, index=i: self.on_text_option_clicked(e, index))
-            
-            if i < len(options) - 1:
-                self.options_display_text.insert(tk.END, separator, ("separator", "center"))
-
+            if i < len(options) - 1: self.options_display_text.insert(tk.END, separator)
         self.options_display_text.config(state=tk.DISABLED)
 
     def on_text_option_clicked(self, event, index):
         current_frame = self.get_current_editor_frame()
         if not current_frame: return
-
-        # Bỏ highlight tất cả các lựa chọn
         for tag in self.options_display_text.tag_names():
-            if tag.startswith("option_"):
-                self.options_display_text.tag_configure(tag, background="white")
-        
-        # Highlight lựa chọn được nhấp
+            if tag.startswith("option_"): self.options_display_text.tag_configure(tag, background="white")
         tag_name = f"option_{index}"
         self.options_display_text.tag_configure(tag_name, background="lightblue")
-
         if hasattr(self, '_full_options_text') and 0 <= index < len(self._full_options_text):
             full_text = self._full_options_text[index]
             current_frame.editor_text.delete("1.0", tk.END)
@@ -322,32 +240,23 @@ class EditorialAssistantTab(ttk.Frame):
             self.update_editor_metrics(None, current_frame, self.sub_notebook.tab(self.sub_notebook.select(), "text").lower())
     
     def update_editor_metrics(self, event, frame, mode):
-        # (Nội dung hàm này cần được điều chỉnh lại từ main_app.py để hoạt động với frame và mode)
         from .constants import (
             TITLE_CHAR_LIMIT_GOOD_MIN, TITLE_CHAR_LIMIT_GOOD_MAX, TITLE_CHAR_LIMIT_MAX,
             COLOR_OK, COLOR_WARN, COLOR_ERROR, COLOR_NORMAL
         )
         content = frame.editor_text.get("1.0", tk.END).strip()
-        char_count = len(content)
-        word_count = len(content.split()) if content else 0
+        char_count = len(content); word_count = len(content.split()) if content else 0
         line_count = len([line for line in content.splitlines() if line.strip()])
-
         label_text, label_color, button_state = "", COLOR_NORMAL, tk.DISABLED
-
         if mode == "tiêu đề":
             label_text = f"Ký tự: {char_count} | Từ: {word_count}"
             if char_count == 0: pass
-            elif TITLE_CHAR_LIMIT_GOOD_MIN <= char_count <= TITLE_CHAR_LIMIT_GOOD_MAX:
-                label_color, button_state = COLOR_OK, tk.NORMAL
-            elif char_count > TITLE_CHAR_LIMIT_MAX:
-                label_color = COLOR_ERROR
-            else:
-                label_color = COLOR_WARN
-        else: # "thumbnail" hoặc "hook"
+            elif TITLE_CHAR_LIMIT_GOOD_MIN <= char_count <= TITLE_CHAR_LIMIT_GOOD_MAX: label_color, button_state = COLOR_OK, tk.NORMAL
+            elif char_count > TITLE_CHAR_LIMIT_MAX: label_color = COLOR_ERROR
+            else: label_color = COLOR_WARN
+        else:
             label_text = f"Ký tự: {char_count} | Từ: {word_count} | Dòng: {line_count}"
-            if char_count > 0:
-                label_color, button_state = COLOR_OK, tk.NORMAL
-
+            if char_count > 0: label_color, button_state = COLOR_OK, tk.NORMAL
         frame.counter_label.config(text=label_text, foreground=label_color)
         frame.save_button.config(state=button_state)
 
@@ -358,6 +267,7 @@ class EditorialAssistantTab(ttk.Frame):
             return
         ThumbnailPreviewWindow(parent=self.winfo_toplevel(), text_content=text_content, log_callback=self.main_app.log_message)
 
+    # hotfix - 2025-07-30 - Bổ sung logic kiểm tra độ dài tiêu đề trước khi lưu
     def save_final_version(self, editor_widget, mode):
         if not self.main_app.active_project_id:
             messagebox.showwarning("Chưa có Dự án hoạt động", "Vui lòng vào tab 'Thư viện' và chọn một dự án để làm việc trước.", parent=self)
@@ -368,10 +278,17 @@ class EditorialAssistantTab(ttk.Frame):
             messagebox.showwarning("Nội dung trống", "Không có nội dung để lưu.", parent=self)
             return
 
-        item_type_map = {"tiêu đề": "Title", "thumbnail": "Thumbnail", "hook": "Hook"}
-        item_type = item_type_map.get(mode.lower())
+        item_type_map = {"title": "Title", "thumbnail": "Thumbnail", "hook": "Hook"}
+        item_type = item_type_map.get(mode)
         
-        if not item_type: return
+        if not item_type: 
+            self.main_app.log_message(f"[ERROR] Không thể xác định loại mục để lưu. Chế độ nhận được: {mode}")
+            return
+
+        # --- LOGIC KIỂM TRA MỚI ---
+        if item_type == "Title" and len(final_text) > 100:
+            messagebox.showwarning("Tiêu đề quá dài", f"Tiêu đề không được vượt quá 100 ký tự.\n(Độ dài hiện tại: {len(final_text)} ký tự)", parent=self)
+            return # Dừng lại, không cho phép lưu
 
         success = self.db_manager.add_or_update_item(self.main_app.active_project_id, item_type, final_text)
 
