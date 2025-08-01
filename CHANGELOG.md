@@ -3,6 +3,20 @@
 Tất cả các thay đổi đáng chú ý của dự án sẽ được ghi lại tại đây.
 Dự án này tuân theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.15.0] - 2025-08-01
+
+### ✨ Tính năng mới (Features)
+- **Tái cấu trúc Luồng làm việc Thư viện:**
+    - Bổ sung bộ lọc "Nhóm Dự án" vào Tab Thư viện, cho phép người dùng dễ dàng xem các dự án theo từng nhóm.
+    - Khôi phục và cải tiến chức năng đồng bộ Google Drive, đưa các tùy chọn ("Chỉ thêm mới" / "Làm mới toàn bộ") vào một cửa sổ con riêng biệt.
+
+### 🐛 Sửa lỗi (Bug Fixes)
+- **Logic Trạng thái Ứng dụng:**
+    - Triển khai cơ chế "khóa/mở khóa" cho các tab "Soạn Truyện Dài" và "Trợ lý Biên tập". Các tab này sẽ bị vô hiệu hóa cho đến khi một "Dự án đang hoạt động" được chọn, giúp ngăn ngừa các lỗi logic.
+    - Sửa lỗi không tự động làm mới danh sách khi tạo một dự án mới trong một nhóm "Local".
+- **Đồng bộ Google Drive:** Sửa lỗi logic nghiêm trọng, đảm bảo việc xác thực và kết nối với Google Drive luôn được thực hiện **trước khi** xóa dữ liệu cục bộ ở chế độ "Làm mới toàn bộ", giúp bảo vệ dữ liệu người dùng.
+
+
 ## [1.14.1] - 2025-07-31
 
 ### 🐛 Sửa lỗi (Bug Fixes)
