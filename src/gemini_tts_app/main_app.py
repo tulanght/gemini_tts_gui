@@ -10,7 +10,7 @@ import os
 import sys
 
 from .settings_manager import load_settings, NUM_API_KEYS
-from .constants import APP_NAME
+from .constants import APP_NAME, APP_VERSION
 from .utils import get_resource_path
 from .database import DatabaseManager
 
@@ -39,7 +39,7 @@ class TTSApp:
     # hotfix - 2025-07-24 - Sắp xếp lại thứ tự pack để log và status bar luôn hiển thị
     def __init__(self, root):
         self.root = root
-        self.root.title(f"{APP_NAME} v1.9.0")
+        self.root.title(f"{APP_NAME} v{APP_VERSION}")
         self.root.geometry("950x850")
 
         style = ttk.Style(self.root)
