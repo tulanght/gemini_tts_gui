@@ -125,8 +125,12 @@ class TTSApp:
     def set_active_project(self, project_id, project_name):
         self.active_project_id = project_id
         self.active_project_name = project_name
-        self.active_project_status.set(f"Trạng thái: Đang làm việc trên dự án '{self.active_project_name}' (ID: {self.active_project_id})")
+        self.active_project_status.set(f"Trạng thái: Đang làm việc trên dự án '{project_name}' (ID: {project_id})")
         
+        # Mở khóa các tab nghiệp vụ
+        self.composer_tab.set_active(True)
+        self.editorial_assistant_tab.set_active(True)
+
         items = self.db_manager.get_items_for_project(project_id)
         story_content = ""
         for item in items:
@@ -138,6 +142,17 @@ class TTSApp:
         self._check_and_update_project_status_color()
         self.notebook.select(self.composer_tab)
         self.log_message(f"Đã kích hoạt dự án: '{project_name}'")
+        
+    def clear_active_project(self):
+        """Xóa trạng thái dự án đang hoạt động và khóa các tab."""
+        self.active_project_id = None
+        self.active_project_name = None
+        self.active_project_status.set("Trạng thái: Chưa có dự án nào đang hoạt động.")
+        
+        # Khóa các tab nghiệp vụ
+        self.composer_tab.set_active(False)
+        self.editorial_assistant_tab.set_active(False)
+        self._check_and_update_project_status_color()
 
     def send_story_to_tts(self, project_id):
         items = self.db_manager.get_items_for_project(project_id)

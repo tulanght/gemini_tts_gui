@@ -95,7 +95,18 @@ class DatabaseManager:
         except sqlite3.Error as e:
             print(f"Lỗi cập nhật trạng thái dự án: {e}")
             return False
-
+    # hotfix - 2025-07-31 - Thêm hàm để lấy dự án theo nhóm
+    def get_projects_by_group(self, group_name):
+        """Lấy tất cả các dự án thuộc về một nhóm cụ thể."""
+        sql = "SELECT id, name, timestamp, status FROM projects WHERE source_group = ? ORDER BY timestamp DESC"
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(sql, (group_name,))
+                return cursor.fetchall()
+        except sqlite3.Error as e:
+            print(f"Lỗi khi lấy dự án theo nhóm '{group_name}': {e}")
+            return []
     # --- Các hàm còn lại giữ nguyên không thay đổi ---
     def create_project(self, name, source_group=None):
         sql = "INSERT OR IGNORE INTO projects (name, source_group) VALUES (?, ?)"
@@ -205,4 +216,32 @@ class DatabaseManager:
             return True
         except sqlite3.Error as e:
             print(f"Lỗi xóa các dự án theo nhóm: {e}")
+            return False
+    
+    # hotfix - 2025-07-31 - Thêm hàm để sửa chữa dữ liệu source_group bị thiếu
+    def update_project_source_group(self, project_name, source_group):
+        """Cập nhật cột source_group cho một dự án dựa trên tên của nó."""
+        sql = "UPDATE projects SET source_group = ? WHERE name = ?"
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(sql, (source_group, project_name))
+                conn.commit()
+                return cursor.rowcount > 0 # Trả về True nếu có hàng được cập nhật
+        except sqlite3.Error as e:
+            print(f"Lỗi khi cập nhật source_group cho '{project_name}': {e}")
+            return False
+        
+    # hotfix - 2025-07-31 - Thêm hàm để cập nhật source_group bằng ID
+    def update_project_source_group_by_id(self, project_id, source_group):
+        """Cập nhật cột source_group cho một dự án dựa trên ID của nó."""
+        sql = "UPDATE projects SET source_group = ? WHERE id = ?"
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(sql, (source_group, project_id))
+                conn.commit()
+                return cursor.rowcount > 0
+        except sqlite3.Error as e:
+            print(f"Lỗi khi cập nhật source_group cho ID '{project_id}': {e}")
             return False

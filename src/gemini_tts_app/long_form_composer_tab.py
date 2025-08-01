@@ -15,21 +15,32 @@ except ImportError:
     pyperclip = None
 
 class LongFormComposerTab(ttk.Frame):
+    # hotfix - 2025-07-31 - Thêm cơ chế khóa/mở khóa giao diện
     def __init__(self, parent, db_manager, main_app_instance):
         super().__init__(parent, padding="10")
         self.db_manager = db_manager
         self.main_app = main_app_instance
-
-        # --- KHỞI TẠO CÁC BIẾN (VARIABLES) ---
         self.continuation_prompt_var = tk.StringVar()
         self.floating_panel = None
         self.clipboard_monitoring_thread = None
         self.is_monitoring_clipboard = False
         self.last_clipboard_content = ""
-
         self._create_widgets()
         self._load_projects_into_composer_combobox()
-
+        self.set_active(False)
+        
+    def set_active(self, is_active):
+        state = tk.NORMAL if is_active else tk.DISABLED
+        for widget in self.winfo_children():
+            self._recursive_widget_state(widget, state)
+    def _recursive_widget_state(self, parent_widget, state):
+        try:
+            parent_widget.config(state=state)
+        except tk.TclError:
+            pass
+        for child in parent_widget.winfo_children():
+            self._recursive_widget_state(child, state)
+                    
     # hotfix - 2025-07-24 - Xóa rowconfigure để khung không giãn ra che mất các thành phần khác
     def _create_widgets(self):
         # DÒNG NÀY ĐÃ BỊ XÓA: self.rowconfigure(0, weight=1)
