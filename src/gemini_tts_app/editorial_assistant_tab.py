@@ -144,28 +144,29 @@ class EditorialAssistantTab(ttk.Frame):
             self.main_app.log_message(f"Lỗi trong quá trình bóc tách tiêu đề: {e}")
             return []
 
+    # hotfix - 2025-08-05 - Cập nhật logic để bóc tách định dạng thumbnail mới của Gemini
     def _parse_thumbnails(self, text: str) -> list[str]:
-        self.main_app.log_message("Bắt đầu bóc tách kịch bản thumbnail...")
+        """
+        Bóc tách kịch bản thumbnail bằng cách tìm khối văn bản sau dòng
+        '**KỊCH BẢN THUMBNAIL:**'.
+        """
+        self.main_app.log_message("Bắt đầu bóc tách kịch bản thumbnail (logic mới)...")
         try:
-            blocks = text.split("---")
-            cleaned_options = []
-            for block in blocks[1:]:
-                if not block.strip(): continue
-                script_lines = []
-                for line in block.strip().split('\n'):
-                    stripped_line = line.strip()
-                    is_bolded = stripped_line.startswith('**') and stripped_line.endswith('**')
-                    is_style_line = '(phong cách' in stripped_line.lower()
-                    if is_bolded and not is_style_line:
-                        clean_line = stripped_line.replace('**', '').strip()
-                        if clean_line: script_lines.append(clean_line)
-                if script_lines:
-                    full_script = "\n".join(script_lines)
-                    cleaned_options.append(full_script)
-            self.main_app.log_message(f"Hoàn tất. Tìm thấy {len(cleaned_options)} kịch bản hợp lệ.")
+            # Regex để tìm tất cả các khối văn bản nằm ngay sau dòng KỊCH BẢN THUMBNAIL
+            # và kết thúc trước Lựa chọn tiếp theo hoặc cuối chuỗi.
+            # [\s\S]*? : khớp với mọi ký tự (bao gồm cả xuống dòng) một cách không tham lam.
+            # (?=...) : Positive lookahead, đảm bảo nó dừng lại trước Lựa chọn tiếp theo mà không ăn mất nó.
+            pattern = re.compile(r'\*\*KỊCH BẢN THUMBNAIL:\*\*\s*([\s\S]*?)(?=\*\*Lựa chọn|\Z)', re.IGNORECASE)
+            
+            matches = pattern.findall(text)
+            
+            # Làm sạch các kết quả tìm được
+            cleaned_options = [match.strip() for match in matches if match.strip()]
+            
+            self.main_app.log_message(f"Hoàn tất. Tìm thấy {len(cleaned_options)} kịch bản thumbnail hợp lệ.")
             return cleaned_options
         except Exception as e:
-            self.main_app.log_message(f"[ERROR] Lỗi bóc tách thumbnail: {e}")
+            self.main_app.log_message(f"[ERROR] Lỗi trong quá trình bóc tách thumbnail: {e}")
             return []
     
     def _parse_hooks(self, text: str) -> list[str]:
