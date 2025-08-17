@@ -1,7 +1,7 @@
 # file-path: src/gemini_tts_app/long_form_composer_tab.py
-# version: 1.0
-# last-updated: 2025-07-23
-# description: Module chuyên trách cho tab Soạn Truyện Dài.
+# version: 2.0
+# last-updated: 2025-08-12
+# description: Tái cấu trúc khu vực "Lưu vào Thư viện" và logic nút lưu.
 
 import tkinter as tk
 from tkinter import ttk, scrolledtext, filedialog, messagebox
@@ -13,9 +13,7 @@ try:
     import pyperclip
 except ImportError:
     pyperclip = None
-
 class LongFormComposerTab(ttk.Frame):
-    # hotfix - 2025-07-31 - Thêm cơ chế khóa/mở khóa giao diện
     def __init__(self, parent, db_manager, main_app_instance):
         super().__init__(parent, padding="10")
         self.db_manager = db_manager
@@ -25,14 +23,27 @@ class LongFormComposerTab(ttk.Frame):
         self.clipboard_monitoring_thread = None
         self.is_monitoring_clipboard = False
         self.last_clipboard_content = ""
-        self._create_widgets()
-        self._load_projects_into_composer_combobox()
-        self.set_active(False)
         
-    def set_active(self, is_active):
+        # Biến mới để theo dõi trạng thái nút lưu
+        self.save_button_state = tk.BooleanVar(value=False)
+
+        self._create_widgets()
+        self.set_active(False) 
+        
+    # hotfix - 2025-08-12 - Cập nhật định nghĩa hàm để nhận project_name
+    def set_active(self, is_active, project_name=None):
+        """Kích hoạt hoặc vô hiệu hóa các thành phần chính của tab."""
         state = tk.NORMAL if is_active else tk.DISABLED
-        for widget in self.winfo_children():
-            self._recursive_widget_state(widget, state)
+        self._recursive_widget_state(self, state)
+        
+        # Cập nhật label và trạng thái nút lưu
+        if is_active and project_name:
+            self.save_status_label.config(text=f"Lưu vào dự án đang hoạt động: '{project_name}'")
+            self.save_to_db_button.config(state=tk.NORMAL)
+        else:
+            self.save_status_label.config(text="Lưu vào dự án đang hoạt động: (Chưa chọn)")
+            self.save_to_db_button.config(state=tk.DISABLED)
+
     def _recursive_widget_state(self, parent_widget, state):
         try:
             parent_widget.config(state=state)
@@ -41,9 +52,7 @@ class LongFormComposerTab(ttk.Frame):
         for child in parent_widget.winfo_children():
             self._recursive_widget_state(child, state)
                     
-    # hotfix - 2025-07-24 - Xóa rowconfigure để khung không giãn ra che mất các thành phần khác
     def _create_widgets(self):
-        # DÒNG NÀY ĐÃ BỊ XÓA: self.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1)
 
         main_pane = ttk.LabelFrame(self, text="Bản thảo truyện", padding=10)
@@ -61,23 +70,26 @@ class LongFormComposerTab(ttk.Frame):
         self.toggle_panel_button = ttk.Button(self, text="Mở Bảng điều khiển Viết truyện", command=self.toggle_composer_panel, style="Accent.TButton")
         self.toggle_panel_button.grid(row=1, column=0, pady=(10,0))
         
+        # --- KHU VỰC "LƯU VÀO THƯ VIỆN" ĐÃ ĐƯỢC TÁI CẤU TRÚC ---
         project_frame = ttk.LabelFrame(self, text="Lưu vào Thư viện", padding=10)
         project_frame.grid(row=2, column=0, sticky="ew", padx=0, pady=(10,0))
-        project_frame.columnconfigure(1, weight=1)
+        project_frame.columnconfigure(0, weight=1)
 
-        ttk.Label(project_frame, text="Chọn Dự án:").grid(row=0, column=0, padx=(0,5), sticky="w")
-        self.composer_project_combobox = ttk.Combobox(project_frame, state="readonly", width=40)
-        self.composer_project_combobox.grid(row=0, column=1, padx=5, sticky="ew")
-        save_to_db_button = ttk.Button(project_frame, text="Lưu truyện vào Dự án", style="Accent.TButton", command=self._save_composer_story_to_project)
-        save_to_db_button.grid(row=0, column=2, padx=5)
+        # Label hiển thị trạng thái thay cho Combobox
+        self.save_status_label = ttk.Label(project_frame, text="Lưu vào dự án đang hoạt động: (Chưa chọn)")
+        self.save_status_label.grid(row=0, column=0, padx=5, sticky="ew")
+        
+        # Nút lưu, trạng thái được quản lý bởi biến
+        self.save_to_db_button = ttk.Button(project_frame, text="Lưu truyện vào Dự án", style="Accent.TButton", command=self._save_composer_story_to_project)
+        self.save_to_db_button.grid(row=0, column=1, padx=5)
 
+    # hotfix - 2025-08-13 - Xóa bỏ tham chiếu đến combobox không còn tồn tại
     def load_story_from_project(self, story_content, project_name):
         """Hàm công khai để main_app có thể tải truyện vào khi kích hoạt dự án."""
         self.composer_text.delete("1.0", tk.END)
         self.composer_text.insert("1.0", story_content)
         self.update_composer_counter()
-        if project_name in self.composer_project_combobox['values']:
-            self.composer_project_combobox.set(project_name)
+        # Dòng code gây lỗi đã được xóa bỏ, không cần thiết nữa
 
     def toggle_composer_panel(self):
         if self.floating_panel and self.floating_panel.winfo_exists():
@@ -225,21 +237,31 @@ class LongFormComposerTab(ttk.Frame):
             self.main_app.log_message(f"Lỗi khi tải danh sách dự án vào composer: {e}")
 
     def _save_composer_story_to_project(self):
+        """Logic lưu truyện mới, an toàn và có xác nhận."""
         if not self.main_app.active_project_id:
-            messagebox.showwarning("Chưa có Dự án hoạt động", "Vui lòng vào tab 'Thư viện' và chọn một dự án để làm việc trước.")
+            messagebox.showwarning("Chưa có Dự án hoạt động", "Lỗi logic: Không tìm thấy dự án đang hoạt động.", parent=self)
             return
 
         story_content = self.composer_text.get("1.0", tk.END).strip()
         if not story_content:
-            messagebox.showwarning("Nội dung trống", "Không có nội dung truyện để lưu.")
+            messagebox.showwarning("Nội dung trống", "Không có nội dung truyện để lưu.", parent=self)
             return
 
+        # Kiểm tra xem dự án đã có truyện chưa
+        items = self.db_manager.get_items_for_project(self.main_app.active_project_id)
+        existing_story = next((item for item in items if item['type'] == 'Story'), None)
+
+        if existing_story and existing_story['content'].strip():
+            if not messagebox.askyesno("Xác nhận Ghi đè", "Dự án này đã có nội dung truyện. Bạn có chắc chắn muốn ghi đè không?", parent=self):
+                return # Người dùng hủy
+
+        # Tiến hành lưu
         success = self.db_manager.add_or_update_item(self.main_app.active_project_id, 'Story', story_content)
         if success:
-            messagebox.showinfo("Thành công", f"Đã lưu nội dung truyện vào dự án '{self.main_app.active_project_name}' thành công!")
+            messagebox.showinfo("Thành công", f"Đã lưu nội dung truyện vào dự án '{self.main_app.active_project_name}' thành công!", parent=self)
             self.main_app._check_and_update_project_status_color()
         else:
-            messagebox.showerror("Thất bại", "Có lỗi xảy ra khi lưu truyện vào CSDL.")
+            messagebox.showerror("Thất bại", "Có lỗi xảy ra khi lưu truyện vào CSDL.", parent=self)
             
     # hotfix - 2025-07-24 - Thêm hàm công khai để chèn văn bản vào đầu bản thảo
     def insert_text_at_start(self, text_to_insert):

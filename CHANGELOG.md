@@ -3,6 +3,18 @@
 Tất cả các thay đổi đáng chú ý của dự án sẽ được ghi lại tại đây.
 Dự án này tuân theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.16.0] - 2025-08-17
+
+### ✨ Tính năng mới (Features)
+- **Cải tiến Luồng làm việc Tab Soạn Truyện Dài:**
+    - Giao diện "Lưu vào Thư viện" được tái cấu trúc, loại bỏ combobox không cần thiết và thay bằng label hiển thị rõ "Dự án đang hoạt động".
+    - Nút "Lưu truyện vào Dự án" chỉ được kích hoạt khi có một dự án đang hoạt động, ngăn ngừa lỗi logic.
+
+### 🐛 Sửa lỗi (Bug Fixes)
+- **Logic Lưu truyện An toàn:** Bổ sung các bước kiểm tra (nội dung rỗng, hỏi xác nhận trước khi ghi đè) để đảm bảo an toàn dữ liệu khi lưu bản thảo truyện.
+- **Sửa lỗi `TypeError` và `AttributeError`** trong quá trình tái cấu trúc luồng làm việc giữa các tab.
+
+
 ## [1.15.0] - 2025-08-01
 
 ### ✨ Tính năng mới (Features)
