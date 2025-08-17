@@ -62,11 +62,13 @@ class EditorialAssistantTab(ttk.Frame):
         self.sub_notebook.add(self.thumbnail_tab, text="Thumbnail")
         self.sub_notebook.add(self.hook_tab, text="Hook")
         
-    def set_active(self, is_active):
+    # hotfix - 2025-08-12 - Cập nhật định nghĩa hàm để nhận project_name
+    def set_active(self, is_active, project_name=None):
+        """Kích hoạt hoặc vô hiệu hóa các thành phần chính của tab."""
         state = tk.NORMAL if is_active else tk.DISABLED
-        # Vô hiệu hóa tất cả các widget con một cách an toàn
-        for widget in self.winfo_children():
-            self._recursive_widget_state(widget, state)
+        self._recursive_widget_state(self, state)
+        # Hiện tại tab này chưa cần dùng project_name, nhưng chúng ta thêm vào để nhất quán
+        
     def _recursive_widget_state(self, parent_widget, state):
         try:
             parent_widget.config(state=state)

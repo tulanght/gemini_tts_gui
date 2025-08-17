@@ -122,14 +122,16 @@ class TTSApp:
         else:
             self.status_bar_frame.configure(style="Incomplete.TFrame")
 
+    # hotfix - 2025-08-12 - Sửa lỗi TypeError do truyền sai tham số
     def set_active_project(self, project_id, project_name):
         self.active_project_id = project_id
         self.active_project_name = project_name
         self.active_project_status.set(f"Trạng thái: Đang làm việc trên dự án '{project_name}' (ID: {project_id})")
         
-        # Mở khóa các tab nghiệp vụ
-        self.composer_tab.set_active(True)
-        self.editorial_assistant_tab.set_active(True)
+        # Mở khóa các tab nghiệp vụ và truyền tên dự án
+        # Lời gọi hàm cần được cập nhật để khớp với định nghĩa hàm mới
+        self.composer_tab.set_active(True, project_name=project_name)
+        self.editorial_assistant_tab.set_active(True, project_name=project_name) # Sẽ sửa định nghĩa hàm này
 
         items = self.db_manager.get_items_for_project(project_id)
         story_content = ""
