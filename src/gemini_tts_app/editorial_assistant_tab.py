@@ -1,7 +1,7 @@
 # file-path: src/gemini_tts_app/editorial_assistant_tab.py
-# version: 1.1
-# last-updated: 2025-07-30
-# description: Sửa lỗi logic nhận dạng, xóa hàm parse_input_text bị trùng lặp.
+# version: 2.0
+# last-updated: 2025-08-17
+# description: Sửa lỗi logic xác thực độ dài tiêu đề và thêm tính năng Capitalized Case.
 
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
@@ -16,6 +16,7 @@ class EditorialAssistantTab(ttk.Frame):
         self._full_options_text = []
         self.assistant_mode = tk.StringVar(value="title")
         self._create_widgets()
+        # hotfix - 2025-08-17 - Sửa lại logic gọi hàm set_active
         self.set_active(False)
 
     def _create_widgets(self):
@@ -62,21 +63,22 @@ class EditorialAssistantTab(ttk.Frame):
         self.sub_notebook.add(self.thumbnail_tab, text="Thumbnail")
         self.sub_notebook.add(self.hook_tab, text="Hook")
         
-    # hotfix - 2025-08-12 - Cập nhật định nghĩa hàm để nhận project_name
     def set_active(self, is_active, project_name=None):
         """Kích hoạt hoặc vô hiệu hóa các thành phần chính của tab."""
         state = tk.NORMAL if is_active else tk.DISABLED
         self._recursive_widget_state(self, state)
-        # Hiện tại tab này chưa cần dùng project_name, nhưng chúng ta thêm vào để nhất quán
-        
+
     def _recursive_widget_state(self, parent_widget, state):
-        try:
-            parent_widget.config(state=state)
-        except tk.TclError:
-            pass
         for child in parent_widget.winfo_children():
-            self._recursive_widget_state(child, state)
+            try:
+                if isinstance(child, (ttk.Button, ttk.Combobox, ttk.Entry, scrolledtext.ScrolledText, ttk.Scale, ttk.Checkbutton, ttk.Radiobutton, tk.Listbox, ttk.Notebook)):
+                    child.config(state=state)
+                if isinstance(child, (ttk.Frame, ttk.LabelFrame, ttk.Notebook)):
+                    self._recursive_widget_state(child, state)
+            except tk.TclError:
+                pass
     
+    # hotfix - 2025-08-17 - Thêm nút Capitalized Case
     def _create_editor_sub_tab(self, name, mode_value):
         frame = ttk.Frame(self.sub_notebook, padding="10")
         frame.columnconfigure(0, weight=1)
@@ -87,21 +89,26 @@ class EditorialAssistantTab(ttk.Frame):
         
         action_frame = ttk.Frame(frame)
         action_frame.grid(row=1, column=0, sticky="ew", pady=(10, 0))
-        action_frame.columnconfigure(0, weight=1)
+        action_frame.columnconfigure(1, weight=1) # Cột giữa để giãn ra
 
         counter_label = ttk.Label(action_frame, text="Ký tự: 0 | Từ: 0", font=("Segoe UI", 10))
         counter_label.grid(row=0, column=0, sticky="w", padx=5)
 
+        if mode_value == "title":
+            # Nút mới cho Capitalized Case
+            format_button = ttk.Button(action_frame, text="Aa", width=4, command=lambda: self._format_to_capitalized_case(editor_text))
+            format_button.grid(row=0, column=1, sticky="w", padx=(10, 0))
+
         if mode_value == "thumbnail":
             preview_button = ttk.Button(action_frame, text="Xem trước Thumbnail", command=lambda: self.show_thumbnail_preview(editor_text))
-            preview_button.grid(row=0, column=1, sticky="e", padx=5)
+            preview_button.grid(row=0, column=2, sticky="e", padx=5)
 
         if mode_value == "hook":
             insert_button = ttk.Button(action_frame, text="🚀 Chèn vào đầu truyện", command=lambda: self._insert_hook_into_story(editor_text), style="Accent.TButton")
-            insert_button.grid(row=0, column=2, sticky="e", padx=5)
+            insert_button.grid(row=0, column=3, sticky="e", padx=5)
 
         save_button = ttk.Button(action_frame, text=f"Chốt & Lưu {name}", state=tk.DISABLED, command=lambda: self.save_final_version(editor_text, mode_value))
-        save_button.grid(row=0, column=3, sticky="e", padx=5)
+        save_button.grid(row=0, column=4, sticky="e", padx=5)
 
         frame.editor_text = editor_text
         frame.counter_label = counter_label
@@ -110,6 +117,16 @@ class EditorialAssistantTab(ttk.Frame):
         editor_text.bind("<KeyRelease>", lambda event, f=frame, m=mode_value: self.update_editor_metrics(event, f, m))
         return frame
 
+    # hotfix - 2025-08-17 - Hàm mới để định dạng Capitalized Case
+    def _format_to_capitalized_case(self, editor_widget):
+        """Lấy văn bản, chuyển sang định dạng Capitalized Case và cập nhật lại."""
+        current_text = editor_widget.get("1.0", tk.END)
+        capitalized_text = current_text.title()
+        editor_widget.delete("1.0", tk.END)
+        editor_widget.insert("1.0", capitalized_text)
+        # Kích hoạt lại event để cập nhật bộ đếm
+        editor_widget.event_generate("<<KeyRelease>>")
+    
     def _insert_hook_into_story(self, editor_widget):
         hook_content = editor_widget.get("1.0", tk.END).strip()
         if not hook_content:
@@ -240,19 +257,42 @@ class EditorialAssistantTab(ttk.Frame):
             if i < len(options) - 1: self.options_display_text.insert(tk.END, separator)
         self.options_display_text.config(state=tk.DISABLED)
 
+    # hotfix - 2025-08-17 - Sửa lỗi màu sắc và tự động định dạng Capitalized Case
     def on_text_option_clicked(self, event, index):
         current_frame = self.get_current_editor_frame()
         if not current_frame: return
+
+        # Bỏ highlight tất cả các lựa chọn cũ
         for tag in self.options_display_text.tag_names():
-            if tag.startswith("option_"): self.options_display_text.tag_configure(tag, background="white")
+            if tag.startswith("option_"):
+                self.options_display_text.tag_configure(tag, background="white")
+        
+        # Highlight lựa chọn được nhấp
         tag_name = f"option_{index}"
         self.options_display_text.tag_configure(tag_name, background="lightblue")
+
         if hasattr(self, '_full_options_text') and 0 <= index < len(self._full_options_text):
             full_text = self._full_options_text[index]
+            
+            # Lấy chế độ hiện tại một cách an toàn
+            try:
+                current_mode = self.sub_notebook.tab(self.sub_notebook.select(), "text").lower()
+            except tk.TclError:
+                current_mode = "title" # Mặc định
+
+            # THAY ĐỔI TẠI ĐÂY: Tự động định dạng nếu là tiêu đề
+            if current_mode == "tiêu đề":
+                formatted_text = full_text.title()
+            else:
+                formatted_text = full_text
+
             current_frame.editor_text.delete("1.0", tk.END)
-            current_frame.editor_text.insert("1.0", full_text)
-            self.update_editor_metrics(None, current_frame, self.sub_notebook.tab(self.sub_notebook.select(), "text").lower())
+            current_frame.editor_text.insert("1.0", formatted_text)
+            
+            # Gọi lại hàm cập nhật chỉ số sau khi đã chèn text
+            self.update_editor_metrics(None, current_frame, current_mode)
     
+    # hotfix - 2025-08-17 - Sửa lại logic kiểm tra độ dài
     def update_editor_metrics(self, event, frame, mode):
         from .constants import (
             TITLE_CHAR_LIMIT_GOOD_MIN, TITLE_CHAR_LIMIT_GOOD_MAX, TITLE_CHAR_LIMIT_MAX,
@@ -262,16 +302,27 @@ class EditorialAssistantTab(ttk.Frame):
         char_count = len(content)
         word_count = len(content.split()) if content else 0
         line_count = len([line for line in content.splitlines() if line.strip()])
+        
         label_text, label_color, button_state = "", COLOR_NORMAL, tk.DISABLED
-        if mode == "tiêu đề":
+
+        if mode == "title":
             label_text = f"Ký tự: {char_count} | Từ: {word_count}"
-            if char_count == 0: pass
-            elif TITLE_CHAR_LIMIT_GOOD_MIN <= char_count <= TITLE_CHAR_LIMIT_GOOD_MAX: label_color, button_state = COLOR_OK, tk.NORMAL
-            elif char_count > TITLE_CHAR_LIMIT_MAX: label_color = COLOR_ERROR
-            else: label_color = COLOR_WARN
+            if char_count == 0:
+                pass
+            elif char_count > TITLE_CHAR_LIMIT_MAX:
+                label_color = COLOR_ERROR
+                button_state = tk.DISABLED # Nút TẮT
+            elif TITLE_CHAR_LIMIT_GOOD_MIN <= char_count <= TITLE_CHAR_LIMIT_GOOD_MAX:
+                label_color = COLOR_OK
+                button_state = tk.NORMAL # Nút BẬT
+            else: # Các trường hợp còn lại (1 -> min-1) và (max_good+1 -> max)
+                label_color = COLOR_WARN
+                button_state = tk.NORMAL # Nút vẫn BẬT
         else:
             label_text = f"Ký tự: {char_count} | Từ: {word_count} | Dòng: {line_count}"
-            if char_count > 0: label_color, button_state = COLOR_OK, tk.NORMAL
+            if char_count > 0:
+                label_color, button_state = COLOR_OK, tk.NORMAL
+
         frame.counter_label.config(text=label_text, foreground=label_color)
         frame.save_button.config(state=button_state)
 
@@ -282,7 +333,9 @@ class EditorialAssistantTab(ttk.Frame):
             return
         ThumbnailPreviewWindow(parent=self.winfo_toplevel(), text_content=text_content, log_callback=self.main_app.log_message)
 
+    # hotfix - 2025-08-17 - Thêm bước tự động Capitalize Case trước khi lưu
     def save_final_version(self, editor_widget, mode):
+        from .constants import TITLE_CHAR_LIMIT_MAX
         if not self.main_app.active_project_id:
             messagebox.showwarning("Chưa có Dự án hoạt động", "Vui lòng vào tab 'Thư viện' và chọn một dự án để làm việc trước.", parent=self)
             return
@@ -290,14 +343,22 @@ class EditorialAssistantTab(ttk.Frame):
         if not final_text:
             messagebox.showwarning("Nội dung trống", "Không có nội dung để lưu.", parent=self)
             return
+        
         item_type_map = {"title": "Title", "thumbnail": "Thumbnail", "hook": "Hook"}
         item_type = item_type_map.get(mode)
         if not item_type: 
             self.main_app.log_message(f"[ERROR] Không thể xác định loại mục để lưu. Chế độ nhận được: {mode}")
             return
-        if item_type == "Title" and len(final_text) > 100:
-            messagebox.showwarning("Tiêu đề quá dài", f"Tiêu đề không được vượt quá 100 ký tự.\n(Độ dài hiện tại: {len(final_text)} ký tự)", parent=self)
+
+        # THAY ĐỔI TẠI ĐÂY: Tự động định dạng lại lần cuối nếu là Tiêu đề
+        if item_type == "Title":
+            final_text = final_text.title()
+
+        # Lớp kiểm tra an toàn cuối cùng
+        if item_type == "Title" and len(final_text) > TITLE_CHAR_LIMIT_MAX:
+            messagebox.showwarning("Tiêu đề quá dài", f"Tiêu đề không được vượt quá {TITLE_CHAR_LIMIT_MAX} ký tự.\n(Độ dài hiện tại: {len(final_text)} ký tự)", parent=self)
             return
+            
         success = self.db_manager.add_or_update_item(self.main_app.active_project_id, item_type, final_text)
         if success:
             messagebox.showinfo("Thành công", f"Đã lưu '{item_type}' vào dự án '{self.main_app.active_project_name}' thành công!", parent=self)
