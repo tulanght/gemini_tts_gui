@@ -3,6 +3,15 @@
 Tất cả các thay đổi đáng chú ý của dự án sẽ được ghi lại tại đây.
 Dự án này tuân theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.16.1] - 2025-08-18
+
+### ✨ Tính năng mới (Features)
+- **Định dạng Capitalized Case:** Bổ sung nút "Aa" và logic tự động định dạng tiêu đề sang dạng "Capitalized Case" (Viết Hoa Chữ Cái Đầu) trong Tab Trợ lý Biên tập để đảm bảo tính nhất quán.
+
+### 🐛 Sửa lỗi (Bug Fixes)
+- **Logic Xác thực Tiêu đề:** Sửa lỗi logic hiển thị màu sắc và trạng thái nút "Lưu" không chính xác khi chọn các tiêu đề dài hơn 100 ký tự. Củng cố lại logic để ngăn chặn tuyệt đối việc lưu các tiêu đề không hợp lệ.
+
+
 ## [1.16.0] - 2025-08-17
 
 ### ✨ Tính năng mới (Features)
