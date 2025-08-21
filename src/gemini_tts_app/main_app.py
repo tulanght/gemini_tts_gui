@@ -82,7 +82,7 @@ class TTSApp:
         self.editorial_assistant_tab = EditorialAssistantTab(self.notebook, self.db_manager, self)
         self.composer_tab = LongFormComposerTab(self.notebook, self.db_manager, self)
         self.settings_tab = SettingsTab(self.notebook, self)
-        self.utilities_tab = UtilitiesTab(self.notebook, self)
+        self.utilities_tab = UtilitiesTab(self.notebook, self.db_manager, self) # Thêm self.db_manager
         
         self.notebook.add(self.tts_tab, text="🎙️ Text-to-Speech")
         self.notebook.add(self.library_tab, text="📖 Thư viện")
