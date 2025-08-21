@@ -3,6 +3,12 @@
 Tất cả các thay đổi đáng chú ý của dự án sẽ được ghi lại tại đây.
 Dự án này tuân theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.17.0] - 2025-08-18
+
+### ✨ Tính năng mới (Features)
+- **Thêm Tab "Tiện ích":** Bổ sung một tab mới vào giao diện chính. Đây là bộ khung ban đầu để chứa các công cụ nhỏ, độc lập trong các phiên bản tương lai, giúp giữ cho cấu trúc ứng dụng gọn gàng và dễ mở rộng.
+
+
 ## [1.16.1] - 2025-08-18
 
 ### ✨ Tính năng mới (Features)
