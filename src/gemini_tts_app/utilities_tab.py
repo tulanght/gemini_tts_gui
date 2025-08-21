@@ -1,7 +1,7 @@
 # file-path: src/gemini_tts_app/utilities_tab.py
-# version: 2.2
-# last-updated: 2025-08-21
-# description: Hoàn thiện logic lọc phụ đề và dọn dẹp code debug.
+# version: 2.3
+# last-updated: 2025-08-22
+# description: Nâng cấp thư viện phụ đề với tính năng tô màu hàng theo hashtag.
 
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
@@ -12,6 +12,7 @@ import os
 import datetime
 import html
 import logging
+from .subtitle_details_window import SubtitleDetailsWindow
 
 class UtilitiesTab(ttk.Frame):
     def __init__(self, parent, db_manager, main_app_instance):
@@ -20,6 +21,12 @@ class UtilitiesTab(ttk.Frame):
         self.main_app = main_app_instance
         self.current_video_info = {}
         self.available_langs_data = {}
+
+        # --- Cấu hình cho việc tô màu theo hashtag ---
+        self.hashtag_color_map = {}
+        self.color_index = 0
+        # Danh sách các màu nền sáng, dễ chịu
+        self.colors = ['#E8F8F5', '#FEF9E7', '#F4ECF7', '#EBF5FB', '#FDEDEC', '#F0F3F4']
 
         self._create_widgets()
         self.load_subtitle_library()
@@ -36,7 +43,6 @@ class UtilitiesTab(ttk.Frame):
         self.url_entry = ttk.Entry(input_frame)
         self.url_entry.grid(row=0, column=1, sticky="ew")
         self.url_entry.bind("<Return>", self._on_url_enter)
-        
         self._setup_entry_context_menu(self.url_entry)
         
         self.fetch_button = ttk.Button(input_frame, text="Liệt kê Phụ đề", command=self._on_url_enter, style="Accent.TButton")
@@ -45,24 +51,68 @@ class UtilitiesTab(ttk.Frame):
         self.results_frame = ttk.Frame(self)
         self.results_frame.grid(row=1, column=0, sticky="ew", pady=(0, 15))
 
-        library_frame = ttk.LabelFrame(self, text="Thư viện Phụ đề đã lưu", padding=10)
+        library_frame = ttk.LabelFrame(self, text="Thư viện Phụ đề", padding="10")
         library_frame.grid(row=2, column=0, sticky="nsew")
         library_frame.columnconfigure(0, weight=1)
-        library_frame.rowconfigure(0, weight=1)
+        library_frame.rowconfigure(1, weight=1)
 
-        columns = ("title", "lang", "type", "date")
+        search_frame = ttk.Frame(library_frame)
+        search_frame.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 10))
+        search_frame.columnconfigure(1, weight=1)
+        ttk.Label(search_frame, text="Tìm theo Hashtag:").pack(side="left", padx=(0,5))
+        self.search_entry = ttk.Entry(search_frame)
+        self.search_entry.pack(side="left", fill="x", expand=True)
+        self.search_entry.bind("<Return>", self._on_search)
+        ttk.Button(search_frame, text="Tìm", command=self._on_search).pack(side="left", padx=5)
+        ttk.Button(search_frame, text="Hiện tất cả", command=self.load_subtitle_library).pack(side="left")
+
+        columns = ("id", "title", "lang", "type", "hashtags", "date")
         self.sub_library_tree = ttk.Treeview(library_frame, columns=columns, show="headings")
-        self.sub_library_tree.heading("title", text="Tên Video"); self.sub_library_tree.heading("lang", text="Ngôn ngữ"); self.sub_library_tree.heading("type", text="Loại"); self.sub_library_tree.heading("date", text="Ngày tải")
-        self.sub_library_tree.column("title", width=400); self.sub_library_tree.column("lang", width=100); self.sub_library_tree.column("type", width=120); self.sub_library_tree.column("date", width=150)
+        self.sub_library_tree.grid(row=1, column=0, sticky="nsew")
+        self.sub_library_tree.heading("id", text="ID"); self.sub_library_tree.heading("title", text="Tên Video"); self.sub_library_tree.heading("lang", text="Ngôn ngữ"); self.sub_library_tree.heading("type", text="Loại"); self.sub_library_tree.heading("hashtags", text="Hashtags"); self.sub_library_tree.heading("date", text="Ngày tải")
+        self.sub_library_tree.column("id", width=0, stretch=tk.NO); self.sub_library_tree.column("title", width=300); self.sub_library_tree.column("lang", width=80); self.sub_library_tree.column("type", width=100); self.sub_library_tree.column("hashtags", width=200); self.sub_library_tree.column("date", width=120)
+        self.sub_library_tree.bind("<Double-1>", self._on_open_subtitle_details)
         
         scrollbar = ttk.Scrollbar(library_frame, orient="vertical", command=self.sub_library_tree.yview)
         self.sub_library_tree.configure(yscroll=scrollbar.set)
-        scrollbar.pack(side="right", fill="y")
-        self.sub_library_tree.pack(expand=True, fill="both")
+        scrollbar.grid(row=1, column=1, sticky="ns")
         
         self.status_label = ttk.Label(self, text="Sẵn sàng.")
         self.status_label.grid(row=3, column=0, sticky="w", pady=(10, 0))
         
+    def _populate_treeview(self, subtitles_to_load):
+        """Hàm trung tâm để điền dữ liệu vào Treeview và áp dụng màu sắc."""
+        for item in self.sub_library_tree.get_children():
+            self.sub_library_tree.delete(item)
+
+        if not subtitles_to_load:
+            return
+
+        for sub in subtitles_to_load:
+            try:
+                sub_id = sub['id']
+                hashtags = self.db_manager.get_hashtags_for_subtitle(sub_id)
+                sub_type = "Tự động" if sub['is_auto_generated'] else "Có sẵn"
+                
+                # ... (code xử lý thời gian) ...
+
+                row_tag = None
+                if hashtags:
+                    primary_hashtag = hashtags[0]
+                    if primary_hashtag not in self.hashtag_color_map:
+                        tag_name = f"style_{primary_hashtag}"
+                        color = self.colors[self.color_index % len(self.colors)]
+                        self.sub_library_tree.tag_configure(tag_name, background=color)
+                        self.hashtag_color_map[primary_hashtag] = tag_name
+                        self.color_index += 1
+                    row_tag = self.hashtag_color_map[primary_hashtag]
+
+                self.sub_library_tree.insert("", "end", values=(
+                    sub_id, sub['video_title'], sub['language'], sub_type, " ".join(hashtags), formatted_time
+                ), tags=(row_tag,) if row_tag else ())
+            except (IndexError, KeyError) as e:
+                self.main_app.log_message(f"[ERROR] Lỗi khi đọc dữ liệu phụ đề từ CSDL: {e}")
+                
     # Thêm hàm mới này vào bất kỳ đâu bên trong lớp UtilitiesTab
     def _setup_entry_context_menu(self, entry_widget):
         """Tạo menu chuột phải cho một widget Entry."""
@@ -99,73 +149,46 @@ class UtilitiesTab(ttk.Frame):
         finally:
             self.main_app.root.after_idle(lambda: self.fetch_button.config(state=tk.NORMAL))
 
-    # hotfix - 2025-08-21 - Logic cuối cùng, ưu tiên và loại bỏ phụ đề trùng lặp
-    def _populate_results(self, manual, auto):
-        for widget in self.results_frame.winfo_children(): widget.destroy()
-        self.available_langs_data.clear()
+    # hotfix - 2025-08-22 - Sửa lỗi NameError do thiếu logic định dạng thời gian
+    def _populate_treeview(self, subtitles_to_load):
+        """Hàm trung tâm để điền dữ liệu vào Treeview và áp dụng màu sắc."""
+        for item in self.sub_library_tree.get_children():
+            self.sub_library_tree.delete(item)
 
-        # Bước 1: Tạo một danh sách ưu tiên để xử lý trùng lặp
-        # Key là mã ngôn ngữ chính (ví dụ: 'en'), value là (mã đầy đủ, is_auto, data)
-        best_subs = {}
+        if not subtitles_to_load:
+            return
 
-        # Ưu tiên 1: Phụ đề có sẵn (manual) luôn là tốt nhất
-        for lang_code, data in manual.items():
-            main_lang = lang_code.split('-')[0]
-            best_subs[main_lang] = (lang_code, False, data)
+        for sub in subtitles_to_load:
+            try:
+                sub_id = sub['id']
+                hashtags = self.db_manager.get_hashtags_for_subtitle(sub_id)
+                sub_type = "Tự động" if sub['is_auto_generated'] else "Có sẵn"
+                
+                # --- BỔ SUNG LẠI LOGIC BỊ THIẾU ---
+                timestamp_str = sub['download_timestamp']
+                try:
+                    dt_object = datetime.datetime.strptime(timestamp_str.split('.')[0], '%Y-%m-%d %H:%M:%S')
+                    formatted_time = dt_object.strftime('%d-%m-%Y %H:%M')
+                except (ValueError, TypeError):
+                    formatted_time = timestamp_str
+                # --- KẾT THÚC PHẦN BỔ SUNG ---
 
-        # Ưu tiên 2: Phụ đề tự động, chỉ lấy bản gốc và ưu tiên bản "original"
-        for lang_code, data in auto.items():
-            main_lang = lang_code.split('-')[0]
-            is_translation = any('&tlang=' in fmt.get('url', '') for fmt in data)
-            
-            if not is_translation:
-                # Nếu ngôn ngữ này chưa có trong danh sách ưu tiên (tức là chưa có bản manual)
-                if main_lang not in best_subs:
-                    # Nếu là bản original (-orig), nó có độ ưu tiên cao
-                    if lang_code.endswith('-orig'):
-                        best_subs[main_lang] = (lang_code, True, data)
-                    # Nếu chưa có bản -orig, thì lấy bản thường
-                    elif main_lang not in [k for k in best_subs.keys() if k.endswith('-orig')]:
-                        best_subs[main_lang] = (lang_code, True, data)
+                row_tag = None
+                if hashtags:
+                    primary_hashtag = hashtags[0]
+                    if primary_hashtag not in self.hashtag_color_map:
+                        tag_name = f"style_{primary_hashtag.replace(' ', '_')}" # Đảm bảo tên tag hợp lệ
+                        color = self.colors[self.color_index % len(self.colors)]
+                        self.sub_library_tree.tag_configure(tag_name, background=color)
+                        self.hashtag_color_map[primary_hashtag] = tag_name
+                        self.color_index += 1
+                    row_tag = self.hashtag_color_map[primary_hashtag]
 
-        # Bước 2: Phân loại lại kết quả cuối cùng để hiển thị
-        manual_to_display = {info[0]: info[2] for lang, info in best_subs.items() if not info[1]}
-        auto_to_display = {info[0]: info[2] for lang, info in best_subs.items() if info[1]}
-
-        # Bước 3: Hiển thị giao diện
-        if manual_to_display:
-            manual_frame = ttk.LabelFrame(self.results_frame, text="Phụ đề có sẵn (Chất lượng cao nhất)", padding=10)
-            manual_frame.pack(fill="x", expand=True, pady=(0, 10))
-            # ... (Code hiển thị nút cho manual_to_display)
-            row, col = 0, 0
-            for lang_code, data in sorted(manual_to_display.items()):
-                self.available_langs_data[lang_code] = {'is_auto': False}
-                lang_name = data[0].get('name', lang_code)
-                btn = ttk.Button(manual_frame, text=lang_name, command=lambda lc=lang_code: self._download_subtitle(lc))
-                btn.grid(row=row, column=col, padx=5, pady=5, sticky="ew")
-                col += 1
-                if col >= 5: col = 0; row += 1
-
-
-        if auto_to_display:
-            auto_frame = ttk.LabelFrame(self.results_frame, text="Phụ đề Tự động GỐC (Do YouTube tạo)", padding=10)
-            auto_frame.pack(fill="x", expand=True)
-            # ... (Code hiển thị nút cho auto_to_display)
-            row, col = 0, 0
-            for lang_code, data in sorted(auto_to_display.items()):
-                self.available_langs_data[lang_code] = {'is_auto': True}
-                lang_name = data[0].get('name', lang_code)
-                btn = ttk.Button(auto_frame, text=f"{lang_name} (Tự động)", command=lambda lc=lang_code: self._download_subtitle(lc))
-                btn.grid(row=row, column=col, padx=5, pady=5, sticky="ew")
-                col += 1
-                if col >= 5: col = 0; row += 1
-
-
-        total_found = len(self.available_langs_data)
-        if total_found == 0:
-            self.status_label.config(text="Không tìm thấy phụ đề nào (bản có sẵn hoặc tự động gốc).")
-        else:
-            self.status_label.config(text=f"Đã tìm thấy {total_found} phụ đề hợp lệ. Vui lòng chọn để tải.")
+                self.sub_library_tree.insert("", "end", values=(
+                    sub_id, sub['video_title'], sub['language'], sub_type, " ".join(hashtags), formatted_time
+                ), tags=(row_tag,) if row_tag else ())
+            except (IndexError, KeyError) as e:
+                self.main_app.log_message(f"[ERROR] Lỗi khi đọc dữ liệu phụ đề từ CSDL: {e}")
 
     def _download_subtitle(self, lang_code):
         if not lang_code in self.available_langs_data:
@@ -253,30 +276,31 @@ class UtilitiesTab(ttk.Frame):
             self.main_app.log_message(f"[ERROR] Lỗi khi dọn dẹp phụ đề: {e}")
             return raw_content
         
-    # hotfix - 2025-08-21 - Sửa lỗi AttributeError do dùng .get() trên sqlite3.Row
-    def load_subtitle_library(self):
-        for item in self.sub_library_tree.get_children(): self.sub_library_tree.delete(item)
+    def load_subtitle_library(self, event=None):
+        if hasattr(self, 'search_entry') and self.search_entry:
+            self.search_entry.delete(0, tk.END)
+        all_subtitles = self.db_manager.get_all_subtitles()
+        self._populate_treeview(all_subtitles)
+
+    def _on_search(self, event=None):
+        tag_to_search = self.search_entry.get().strip()
+        if not tag_to_search:
+            self.load_subtitle_library()
+            return
         
-        # Giả định get_all_subtitles trả về danh sách các đối tượng sqlite3.Row
-        subtitles = self.db_manager.get_all_subtitles() 
-        if not subtitles: return
-
-        for sub in subtitles:
-            try:
-                # SỬA LỖI TẠI ĐÂY: Truy cập bằng key thay vì .get()
-                is_auto = sub['is_auto_generated']
-                sub_type = "Tự động" if is_auto else "Có sẵn"
-                
-                timestamp_str = sub['download_timestamp']
-                video_title = sub['video_title']
-                language = sub['language']
-
-                try:
-                    dt_object = datetime.datetime.strptime(timestamp_str.split('.')[0], '%Y-%m-%d %H:%M:%S')
-                    formatted_time = dt_object.strftime('%d-%m-%Y %H:%M')
-                except (ValueError, TypeError):
-                    formatted_time = timestamp_str
-                    
-                self.sub_library_tree.insert("", "end", values=(video_title, language, sub_type, formatted_time))
-            except (IndexError, KeyError) as e:
-                self.main_app.log_message(f"[ERROR] Lỗi khi đọc dữ liệu phụ đề từ CSDL: {e}")
+        filtered_subs = self.db_manager.get_subtitles_by_hashtag(tag_to_search)
+        if not filtered_subs:
+            self.status_label.config(text=f"Không tìm thấy phụ đề nào với hashtag: '{tag_to_search}'")
+        else:
+            self.status_label.config(text=f"Tìm thấy {len(filtered_subs)} kết quả.")
+        
+        self._populate_treeview(filtered_subs)
+    def _on_open_subtitle_details(self, event=None):
+        """Mở cửa sổ chi tiết khi người dùng nhấp đúp."""
+        selected_item = self.sub_library_tree.focus()
+        if not selected_item: return
+            
+        item_values = self.sub_library_tree.item(selected_item, "values")
+        subtitle_id = item_values[0] # Lấy ID từ cột đầu tiên
+        
+        SubtitleDetailsWindow(self, self.db_manager, subtitle_id, on_close_callback=self.load_subtitle_library)
