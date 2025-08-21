@@ -17,6 +17,7 @@ class DatabaseManager:
         os.makedirs(data_dir, exist_ok=True)
         self.db_path = os.path.join(data_dir, db_name)
         self.create_tables()
+        self._create_subtitles_table() # THÊM DÒNG NÀY
         self._run_migrations()
 
     def get_connection(self):
@@ -245,3 +246,53 @@ class DatabaseManager:
         except sqlite3.Error as e:
             print(f"Lỗi khi cập nhật source_group cho ID '{project_id}': {e}")
             return False
+        
+    def _create_subtitles_table(self):
+            try:
+                with self.get_connection() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        CREATE TABLE IF NOT EXISTS downloaded_subtitles (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            video_title TEXT,
+                            youtube_url TEXT,
+                            language TEXT,
+                            is_auto_generated BOOLEAN,
+                            content TEXT,
+                            download_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                        )
+                    """)
+                    conn.commit()
+            except sqlite3.Error as e:
+                print(f"Lỗi tạo bảng phụ đề: {e}")
+
+    def add_subtitle(self, data):
+        sql = """
+            INSERT INTO downloaded_subtitles 
+            (video_title, youtube_url, language, is_auto_generated, content) 
+            VALUES (?, ?, ?, ?, ?)
+        """
+        try:
+            with self.get_connection() as conn:
+                conn.cursor().execute(sql, (
+                    data['video_title'],
+                    data['youtube_url'],
+                    data['language'],
+                    data['is_auto_generated'],
+                    data['content']
+                ))
+                conn.commit()
+            return True
+        except sqlite3.Error as e:
+            print(f"Lỗi thêm phụ đề vào CSDL: {e}")
+            return False
+    
+    def get_all_subtitles(self):
+        """Lấy tất cả các phụ đề đã lưu, sắp xếp theo ngày tải mới nhất."""
+        sql = "SELECT video_title, language, is_auto_generated, download_timestamp FROM downloaded_subtitles ORDER BY download_timestamp DESC"
+        try:
+            with self.get_connection() as conn:
+                return conn.cursor().execute(sql).fetchall()
+        except sqlite3.Error as e:
+            print(f"Lỗi lấy danh sách phụ đề: {e}")
+            return []

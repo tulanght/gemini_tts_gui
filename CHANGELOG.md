@@ -3,6 +3,21 @@
 Tất cả các thay đổi đáng chú ý của dự án sẽ được ghi lại tại đây.
 Dự án này tuân theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.18.0] - 2025-08-21
+
+### ✨ Tính năng mới (Features)
+- **Thêm Tab "Tiện ích":** Bổ sung Tab "Tiện ích" mới, tạo nền tảng cho các công cụ trong tương lai.
+- **Tiện ích Tải phụ đề YouTube:**
+    - Cho phép tải về các phụ đề có sẵn (do người dùng tải lên) và phụ đề tự động gốc (do YouTube tạo).
+    - Logic lọc thông minh để chỉ hiển thị các phụ đề thực sự tồn tại, tránh hiển thị hàng trăm bản dịch không cần thiết.
+    - Tự động dọn dẹp nội dung phụ đề (xóa timestamp, ký tự đặc biệt, định dạng thừa) để cho ra file `.txt` sạch sẽ.
+    - Tích hợp "Thư viện Phụ đề" để lưu trữ và quản lý các phụ đề đã tải về trong cơ sở dữ liệu.
+- **Cải tiến Giao diện:** Thêm menu chuột phải (Cắt/Sao chép/Dán) vào ô nhập liệu URL để tăng tính tiện dụng.
+
+### 🐛 Sửa lỗi (Bug Fixes)
+- Sửa nhiều lỗi liên quan đến việc xử lý dữ liệu từ `yt-dlp` và các lỗi giao diện trong quá trình phát triển tính năng.
+
+
 ## [1.17.0] - 2025-08-18
 
 ### ✨ Tính năng mới (Features)
