@@ -1,7 +1,7 @@
 # file-path: src/gemini_tts_app/utilities_tab.py
-# version: 2.3
+# version: 2.4
 # last-updated: 2025-08-22
-# description: Nâng cấp thư viện phụ đề với tính năng tô màu hàng theo hashtag.
+# description: Hoàn thiện thư viện phụ đề với chức năng Xóa qua menu chuột phải.
 
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
@@ -21,11 +21,8 @@ class UtilitiesTab(ttk.Frame):
         self.main_app = main_app_instance
         self.current_video_info = {}
         self.available_langs_data = {}
-
-        # --- Cấu hình cho việc tô màu theo hashtag ---
         self.hashtag_color_map = {}
         self.color_index = 0
-        # Danh sách các màu nền sáng, dễ chịu
         self.colors = ['#E8F8F5', '#FEF9E7', '#F4ECF7', '#EBF5FB', '#FDEDEC', '#F0F3F4']
 
         self._create_widgets()
@@ -72,6 +69,7 @@ class UtilitiesTab(ttk.Frame):
         self.sub_library_tree.heading("id", text="ID"); self.sub_library_tree.heading("title", text="Tên Video"); self.sub_library_tree.heading("lang", text="Ngôn ngữ"); self.sub_library_tree.heading("type", text="Loại"); self.sub_library_tree.heading("hashtags", text="Hashtags"); self.sub_library_tree.heading("date", text="Ngày tải")
         self.sub_library_tree.column("id", width=0, stretch=tk.NO); self.sub_library_tree.column("title", width=300); self.sub_library_tree.column("lang", width=80); self.sub_library_tree.column("type", width=100); self.sub_library_tree.column("hashtags", width=200); self.sub_library_tree.column("date", width=120)
         self.sub_library_tree.bind("<Double-1>", self._on_open_subtitle_details)
+        self.sub_library_tree.bind("<Button-3>", self._show_library_context_menu) # Gắn sự kiện chuột phải
         
         scrollbar = ttk.Scrollbar(library_frame, orient="vertical", command=self.sub_library_tree.yview)
         self.sub_library_tree.configure(yscroll=scrollbar.set)
@@ -79,6 +77,20 @@ class UtilitiesTab(ttk.Frame):
         
         self.status_label = ttk.Label(self, text="Sẵn sàng.")
         self.status_label.grid(row=3, column=0, sticky="w", pady=(10, 0))
+
+        # --- TẠO MENU CHUỘT PHẢI ---
+        self.library_context_menu = tk.Menu(self, tearoff=0)
+        self.library_context_menu.add_command(label="Xóa Phụ đề đã chọn", command=self._on_delete_subtitle)
+
+    def _show_library_context_menu(self, event):
+        """Hiển thị menu chuột phải tại vị trí con trỏ."""
+        # Chọn hàng ngay tại vị trí chuột phải trước khi hiển thị menu
+        item_id = self.sub_library_tree.identify_row(event.y)
+        if item_id:
+            self.sub_library_tree.selection_set(item_id)
+            self.library_context_menu.tk_popup(event.x_root, event.y_root)
+    
+    
         
     def _populate_treeview(self, subtitles_to_load):
         """Hàm trung tâm để điền dữ liệu vào Treeview và áp dụng màu sắc."""
@@ -295,6 +307,7 @@ class UtilitiesTab(ttk.Frame):
             self.status_label.config(text=f"Tìm thấy {len(filtered_subs)} kết quả.")
         
         self._populate_treeview(filtered_subs)
+    
     def _on_open_subtitle_details(self, event=None):
         """Mở cửa sổ chi tiết khi người dùng nhấp đúp."""
         selected_item = self.sub_library_tree.focus()
@@ -304,3 +317,20 @@ class UtilitiesTab(ttk.Frame):
         subtitle_id = item_values[0] # Lấy ID từ cột đầu tiên
         
         SubtitleDetailsWindow(self, self.db_manager, subtitle_id, on_close_callback=self.load_subtitle_library)
+        
+    def _on_delete_subtitle(self):
+        """Xử lý logic xóa phụ đề."""
+        selected_item = self.sub_library_tree.focus()
+        if not selected_item:
+            return
+        
+        item_values = self.sub_library_tree.item(selected_item, "values")
+        subtitle_id = item_values[0]
+        video_title = item_values[1]
+
+        if messagebox.askyesno("Xác nhận Xóa", f"Bạn có chắc chắn muốn xóa vĩnh viễn phụ đề cho video:\n\n'{video_title}'\n\nThao tác này không thể hoàn tác.", parent=self):
+            if self.db_manager.delete_subtitle(subtitle_id):
+                self.status_label.config(text="Đã xóa phụ đề thành công.")
+                self.load_subtitle_library() # Tải lại danh sách
+            else:
+                messagebox.showerror("Lỗi", "Không thể xóa phụ đề khỏi CSDL.", parent=self)

@@ -387,3 +387,17 @@ class DatabaseManager:
         except sqlite3.Error as e:
             print(f"Lỗi khi lấy chi tiết phụ đề {subtitle_id}: {e}")
             return None
+        
+    # Thêm hàm này vào cuối lớp DatabaseManager
+    def delete_subtitle(self, subtitle_id):
+        """Xóa một phụ đề khỏi CSDL dựa trên ID của nó."""
+        sql = "DELETE FROM downloaded_subtitles WHERE id = ?"
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(sql, (subtitle_id,))
+                conn.commit()
+                return cursor.rowcount > 0 # Trả về True nếu có hàng bị xóa
+        except sqlite3.Error as e:
+            print(f"Lỗi khi xóa phụ đề {subtitle_id}: {e}")
+            return False
