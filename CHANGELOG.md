@@ -3,6 +3,16 @@
 Tất cả các thay đổi đáng chú ý của dự án sẽ được ghi lại tại đây.
 Dự án này tuân theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.19.0] - 2025-08-22
+
+### ✨ Tính năng mới (Features)
+- **Nâng cấp Thư viện Phụ đề:**
+    - Bổ sung hệ thống **Hashtag** để phân loại và tổ chức các phụ đề đã tải về.
+    - Tạo cửa sổ "Chi tiết Phụ đề" (truy cập bằng nhấp đúp) cho phép xem nội dung và thêm/sửa hashtag.
+    - Thêm chức năng **Tìm kiếm/Lọc** theo hashtag.
+    - Tự động **tô màu nền** cho các hàng trong thư viện dựa trên hashtag chính để dễ dàng nhận diện chủ đề.
+
+
 ## [1.18.0] - 2025-08-21
 
 ### ✨ Tính năng mới (Features)

@@ -71,6 +71,31 @@ class DatabaseManager:
                 conn.commit()
         except sqlite3.Error as e:
             print(f"Lỗi tạo bảng: {e}")
+            
+        # THÊM CÁC LỆNH DƯỚI ĐÂY:
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                # Bảng chứa tất cả các hashtag duy nhất
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS hashtags (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        tag_name TEXT UNIQUE NOT NULL
+                    )
+                """)
+                # Bảng liên kết giữa phụ đề và hashtag (quan hệ nhiều-nhiều)
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS subtitle_hashtag_link (
+                        subtitle_id INTEGER,
+                        hashtag_id INTEGER,
+                        FOREIGN KEY (subtitle_id) REFERENCES downloaded_subtitles (id) ON DELETE CASCADE,
+                        FOREIGN KEY (hashtag_id) REFERENCES hashtags (id) ON DELETE CASCADE,
+                        PRIMARY KEY (subtitle_id, hashtag_id)
+                    )
+                """)
+                conn.commit()
+        except sqlite3.Error as e:
+            print(f"Lỗi khi tạo bảng hashtags hoặc bảng liên kết: {e}")
 
     # hotfix v4.7.1 - 2025-07-19 - Sửa lỗi không lấy cột 'status'.
     def get_all_projects(self):
@@ -287,12 +312,78 @@ class DatabaseManager:
             print(f"Lỗi thêm phụ đề vào CSDL: {e}")
             return False
     
+    # hotfix - 2025-08-21 - Sửa lỗi IndexError bằng cách SELECT tất cả các cột
     def get_all_subtitles(self):
         """Lấy tất cả các phụ đề đã lưu, sắp xếp theo ngày tải mới nhất."""
-        sql = "SELECT video_title, language, is_auto_generated, download_timestamp FROM downloaded_subtitles ORDER BY download_timestamp DESC"
+        # SỬA LẠI CÂU LỆNH SQL ĐỂ LẤY TẤT CẢ CÁC CỘT
+        sql = "SELECT * FROM downloaded_subtitles ORDER BY download_timestamp DESC"
         try:
             with self.get_connection() as conn:
                 return conn.cursor().execute(sql).fetchall()
         except sqlite3.Error as e:
             print(f"Lỗi lấy danh sách phụ đề: {e}")
             return []
+        
+    # Thêm toàn bộ các hàm này vào cuối file database.py
+    def get_hashtags_for_subtitle(self, subtitle_id):
+        """Lấy danh sách các hashtag của một phụ đề cụ thể."""
+        sql = """
+            SELECT h.tag_name FROM hashtags h
+            JOIN subtitle_hashtag_link shl ON h.id = shl.hashtag_id
+            WHERE shl.subtitle_id = ?
+        """
+        try:
+            with self.get_connection() as conn:
+                return [row['tag_name'] for row in conn.cursor().execute(sql, (subtitle_id,)).fetchall()]
+        except sqlite3.Error as e:
+            print(f"Lỗi khi lấy hashtags cho phụ đề {subtitle_id}: {e}")
+            return []
+
+    def update_hashtags_for_subtitle(self, subtitle_id, hashtags):
+        """Cập nhật toàn bộ danh sách hashtag cho một phụ đề."""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                # Xóa tất cả các liên kết hashtag cũ của phụ đề này
+                cursor.execute("DELETE FROM subtitle_hashtag_link WHERE subtitle_id = ?", (subtitle_id,))
+                
+                for tag_name in hashtags:
+                    # Thêm hashtag mới vào bảng hashtags nếu nó chưa tồn tại
+                    cursor.execute("INSERT OR IGNORE INTO hashtags (tag_name) VALUES (?)", (tag_name,))
+                    # Lấy id của hashtag đó
+                    cursor.execute("SELECT id FROM hashtags WHERE tag_name = ?", (tag_name,))
+                    hashtag_id = cursor.fetchone()['id']
+                    # Tạo liên kết mới
+                    cursor.execute("INSERT INTO subtitle_hashtag_link (subtitle_id, hashtag_id) VALUES (?, ?)", (subtitle_id, hashtag_id))
+                conn.commit()
+            return True
+        except sqlite3.Error as e:
+            print(f"Lỗi khi cập nhật hashtags cho phụ đề {subtitle_id}: {e}")
+            return False
+
+    def get_subtitles_by_hashtag(self, tag_name):
+        """Lấy danh sách các phụ đề được gán một hashtag cụ thể."""
+        sql = """
+            SELECT ds.* FROM downloaded_subtitles ds
+            JOIN subtitle_hashtag_link shl ON ds.id = shl.subtitle_id
+            JOIN hashtags h ON shl.hashtag_id = h.id
+            WHERE h.tag_name LIKE ?
+            ORDER BY ds.download_timestamp DESC
+        """
+        try:
+            with self.get_connection() as conn:
+                # Dùng % để tìm kiếm gần đúng
+                return conn.cursor().execute(sql, ('%' + tag_name + '%',)).fetchall()
+        except sqlite3.Error as e:
+            print(f"Lỗi khi tìm phụ đề theo hashtag '{tag_name}': {e}")
+            return []
+
+    def get_subtitle_details(self, subtitle_id):
+        """Lấy chi tiết đầy đủ của một phụ đề, bao gồm cả nội dung."""
+        sql = "SELECT * FROM downloaded_subtitles WHERE id = ?"
+        try:
+            with self.get_connection() as conn:
+                return conn.cursor().execute(sql, (subtitle_id,)).fetchone()
+        except sqlite3.Error as e:
+            print(f"Lỗi khi lấy chi tiết phụ đề {subtitle_id}: {e}")
+            return None
