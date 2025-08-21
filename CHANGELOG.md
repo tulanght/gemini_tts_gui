@@ -11,7 +11,7 @@ Dự án này tuân theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
     - Tạo cửa sổ "Chi tiết Phụ đề" (truy cập bằng nhấp đúp) cho phép xem nội dung và thêm/sửa hashtag.
     - Thêm chức năng **Tìm kiếm/Lọc** theo hashtag.
     - Tự động **tô màu nền** cho các hàng trong thư viện dựa trên hashtag chính để dễ dàng nhận diện chủ đề.
-
+    - Thêm chức năng **Xóa phụ đề** thông qua menu chuột phải, có hộp thoại xác nhận an toàn.
 
 ## [1.18.0] - 2025-08-21
 
