@@ -20,7 +20,8 @@ from .library_tab import LibraryTab
 from .editorial_assistant_tab import EditorialAssistantTab
 from .long_form_composer_tab import LongFormComposerTab
 from .settings_tab import SettingsTab
-
+# hotfix - 2025-08-18 - Import module UtilitiesTab
+from .utilities_tab import UtilitiesTab
 class TkinterLogHandler(logging.Handler):
     def __init__(self, text_widget):
         super().__init__()
@@ -81,12 +82,14 @@ class TTSApp:
         self.editorial_assistant_tab = EditorialAssistantTab(self.notebook, self.db_manager, self)
         self.composer_tab = LongFormComposerTab(self.notebook, self.db_manager, self)
         self.settings_tab = SettingsTab(self.notebook, self)
+        self.utilities_tab = UtilitiesTab(self.notebook, self)
         
         self.notebook.add(self.tts_tab, text="🎙️ Text-to-Speech")
         self.notebook.add(self.library_tab, text="📖 Thư viện")
         self.notebook.add(self.editorial_assistant_tab, text="✍️ Trợ lý Biên tập")
         self.notebook.add(self.composer_tab, text="📝 Soạn Truyện Dài")
         self.notebook.add(self.settings_tab, text="⚙️ Cài đặt")
+        self.notebook.add(self.utilities_tab, text="🛠️ Tiện ích")
 
     def get_active_api_keys(self):
         active_keys = []
