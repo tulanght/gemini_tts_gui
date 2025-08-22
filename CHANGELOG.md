@@ -3,6 +3,16 @@
 Tất cả các thay đổi đáng chú ý của dự án sẽ được ghi lại tại đây.
 Dự án này tuân theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.20.0] - 2025-08-22
+
+### ✨ Tính năng mới (Features)
+- **Tích hợp "Prompt Thông minh" vào Tab Tiện ích:**
+    - Bổ sung khu vực "Xử lý Nội dung & Tạo Prompt" mới.
+    - Tự động tải nội dung của phụ đề được chọn trong thư viện lên khu vực xử lý.
+    - Cung cấp các nút bấm để tự động tạo prompt cho các tác vụ: Tóm tắt, Dịch sang Tiếng Việt, Viết lại thành lời dẫn, và Tìm ý chính.
+    - Thêm chức năng "Sao chép Prompt" tiện lợi để sử dụng với Gemini Web hoặc các nền tảng AI khác.
+
+
 ## [1.19.0] - 2025-08-22
 
 ### ✨ Tính năng mới (Features)
