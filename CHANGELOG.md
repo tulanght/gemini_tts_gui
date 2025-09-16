@@ -3,6 +3,19 @@
 Tất cả các thay đổi đáng chú ý của dự án sẽ được ghi lại tại đây.
 Dự án này tuân theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.21.0] - 2025-08-22
+
+### ✨ Tính năng mới (Features)
+- **Nâng cấp CSDL:** Bổ sung các cột mới (`summary_content`, `translated_content`, `rewritten_content`, `main_ideas_content`) vào bảng `downloaded_subtitles` để lưu trữ nội dung đã qua xử lý. Tích hợp cơ chế "di trú" (migration) để tự động cập nhật CSDL cho người dùng cũ.
+- **Lưu Nội dung đã xử lý:** Thêm chức năng cho phép người dùng lưu các kết quả từ việc tạo prompt (Tóm tắt, Dịch, Viết lại...) vào CSDL.
+
+### ♻️ Tái cấu trúc (Refactoring)
+- **Tái cấu trúc giao diện Tab Tiện ích:** Thay đổi bố cục để có luồng làm việc tự nhiên hơn: 1. Tải phụ đề -> 2. Thư viện phụ đề -> 3. Xử lý nội dung.
+- **Tối ưu hóa Thư viện Phụ đề:**
+    - Sắp xếp và điều chỉnh lại độ rộng các cột để dễ nhìn hơn.
+    - Thêm cột "Đã xử lý" (📝) để hiển thị trạng thái của các phụ đề, giúp người dùng nhận biết nhanh những mục đã được làm việc.
+
+
 ## [1.20.0] - 2025-08-22
 
 ### ✨ Tính năng mới (Features)
