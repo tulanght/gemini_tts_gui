@@ -1,10 +1,10 @@
 # file-path: src/gemini_tts_app/utilities_tab.py
-# version: 3.2
+# version: 4.0
 # last-updated: 2025-08-22
-# description: Phiên bản hoàn chỉnh, đầy đủ tất cả các hàm cần thiết.
+# description: Tái cấu trúc giao diện, tối ưu hóa thư viện và thêm chức năng lưu nội dung đã xử lý.
 
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox, scrolledtext
+from tkinter import ttk, filedialog, messagebox, scrolledtext, simpledialog
 import threading
 import re
 import yt_dlp
@@ -31,8 +31,9 @@ class UtilitiesTab(ttk.Frame):
 
     def _create_widgets(self):
         self.columnconfigure(0, weight=1)
-        self.rowconfigure(3, weight=1)
+        self.rowconfigure(2, weight=1) # Row 2 (Thư viện) sẽ co giãn
 
+        # --- KHU VỰC 1: TẢI PHỤ ĐỀ ---
         input_frame = ttk.LabelFrame(self, text="1. Tải phụ đề YouTube", padding="10")
         input_frame.grid(row=0, column=0, sticky="ew", pady=(0, 10))
         input_frame.columnconfigure(1, weight=1)
@@ -43,27 +44,12 @@ class UtilitiesTab(ttk.Frame):
         self._setup_entry_context_menu(self.url_entry)
         self.fetch_button = ttk.Button(input_frame, text="Liệt kê Phụ đề", command=self._on_url_enter, style="Accent.TButton")
         self.fetch_button.grid(row=0, column=2, padx=(5, 0))
-
         self.results_frame = ttk.Frame(self)
         self.results_frame.grid(row=1, column=0, sticky="ew", pady=(0, 15))
 
-        processing_frame = ttk.LabelFrame(self, text="2. Xử lý Nội dung & Tạo Prompt", padding="10")
-        processing_frame.grid(row=2, column=0, sticky="ew", pady=(0, 10))
-        processing_frame.columnconfigure(0, weight=1)
-        self.selected_sub_content = scrolledtext.ScrolledText(processing_frame, height=7, wrap=tk.WORD, state=tk.DISABLED)
-        self.selected_sub_content.grid(row=0, column=0, columnspan=5, sticky="ew", pady=(0, 10))
-        prompt_buttons_frame = ttk.Frame(processing_frame)
-        prompt_buttons_frame.grid(row=1, column=0, columnspan=5, sticky="w")
-        ttk.Button(prompt_buttons_frame, text="Tóm tắt", command=lambda: self._generate_prompt("summary")).pack(side="left", padx=(0,5))
-        ttk.Button(prompt_buttons_frame, text="Dịch sang Tiếng Việt", command=lambda: self._generate_prompt("translate")).pack(side="left", padx=5)
-        ttk.Button(prompt_buttons_frame, text="Viết lại thành lời dẫn", command=lambda: self._generate_prompt("rewrite")).pack(side="left", padx=5)
-        ttk.Button(prompt_buttons_frame, text="Tìm ý chính", command=lambda: self._generate_prompt("main_ideas")).pack(side="left", padx=5)
-        self.generated_prompt_text = scrolledtext.ScrolledText(processing_frame, height=5, wrap=tk.WORD)
-        self.generated_prompt_text.grid(row=2, column=0, columnspan=5, sticky="ew", pady=(10, 5))
-        ttk.Button(processing_frame, text="Sao chép Prompt", command=self._copy_prompt, style="Accent.TButton").grid(row=3, column=0, columnspan=5, pady=(5,0))
-
-        library_frame = ttk.LabelFrame(self, text="3. Thư viện Phụ đề", padding="10")
-        library_frame.grid(row=3, column=0, sticky="nsew")
+        # --- KHU VỰC 2: THƯ VIỆN PHỤ ĐỀ ---
+        library_frame = ttk.LabelFrame(self, text="2. Thư viện Phụ đề", padding="10")
+        library_frame.grid(row=2, column=0, sticky="nsew")
         library_frame.columnconfigure(0, weight=1)
         library_frame.rowconfigure(1, weight=1)
         search_frame = ttk.Frame(library_frame)
@@ -76,17 +62,36 @@ class UtilitiesTab(ttk.Frame):
         ttk.Button(search_frame, text="Tìm", command=self._on_search).pack(side="left", padx=5)
         ttk.Button(search_frame, text="Hiện tất cả", command=self.load_subtitle_library).pack(side="left")
 
-        columns = ("id", "title", "lang", "type", "hashtags", "date")
+        columns = ("id", "processed", "title", "hashtags", "lang", "type", "date")
         self.sub_library_tree = ttk.Treeview(library_frame, columns=columns, show="headings")
         self.sub_library_tree.grid(row=1, column=0, sticky="nsew")
-        self.sub_library_tree.heading("id", text="ID"); self.sub_library_tree.heading("title", text="Tên Video"); self.sub_library_tree.heading("lang", text="Ngôn ngữ"); self.sub_library_tree.heading("type", text="Loại"); self.sub_library_tree.heading("hashtags", text="Hashtags"); self.sub_library_tree.heading("date", text="Ngày tải")
-        self.sub_library_tree.column("id", width=0, stretch=tk.NO); self.sub_library_tree.column("title", width=300); self.sub_library_tree.column("lang", width=80); self.sub_library_tree.column("type", width=100); self.sub_library_tree.column("hashtags", width=200); self.sub_library_tree.column("date", width=120)
+        self.sub_library_tree.heading("id", text="ID"); self.sub_library_tree.heading("processed", text="📝"); self.sub_library_tree.heading("title", text="Tên Video"); self.sub_library_tree.heading("hashtags", text="Hashtags"); self.sub_library_tree.heading("lang", text="Ngôn ngữ"); self.sub_library_tree.heading("type", text="Loại"); self.sub_library_tree.heading("date", text="Ngày tải")
+        self.sub_library_tree.column("id", width=0, stretch=tk.NO); self.sub_library_tree.column("processed", width=40, anchor="center"); self.sub_library_tree.column("title", width=350); self.sub_library_tree.column("hashtags", width=200); self.sub_library_tree.column("lang", width=80); self.sub_library_tree.column("type", width=100); self.sub_library_tree.column("date", width=120)
         self.sub_library_tree.bind("<Double-1>", self._on_open_subtitle_details)
         self.sub_library_tree.bind("<Button-3>", self._show_library_context_menu)
         self.sub_library_tree.bind("<ButtonRelease-1>", self._on_subtitle_select)
         scrollbar = ttk.Scrollbar(library_frame, orient="vertical", command=self.sub_library_tree.yview)
         self.sub_library_tree.configure(yscroll=scrollbar.set)
         scrollbar.grid(row=1, column=1, sticky="ns")
+
+        # --- KHU VỰC 3: XỬ LÝ NỘI DUNG & TẠO PROMPT ---
+        processing_frame = ttk.LabelFrame(self, text="3. Xử lý Nội dung & Tạo Prompt", padding="10")
+        processing_frame.grid(row=3, column=0, sticky="ew", pady=(10, 0))
+        processing_frame.columnconfigure(0, weight=1)
+        self.selected_sub_content = scrolledtext.ScrolledText(processing_frame, height=7, wrap=tk.WORD, state=tk.DISABLED)
+        self.selected_sub_content.grid(row=0, column=0, columnspan=5, sticky="ew", pady=(0, 10))
+        prompt_buttons_frame = ttk.Frame(processing_frame)
+        prompt_buttons_frame.grid(row=1, column=0, columnspan=5, sticky="w")
+        ttk.Button(prompt_buttons_frame, text="Tóm tắt", command=lambda: self._generate_prompt("summary")).pack(side="left", padx=(0,5))
+        ttk.Button(prompt_buttons_frame, text="Dịch sang Tiếng Việt", command=lambda: self._generate_prompt("translate")).pack(side="left", padx=5)
+        ttk.Button(prompt_buttons_frame, text="Viết lại thành lời dẫn", command=lambda: self._generate_prompt("rewrite")).pack(side="left", padx=5)
+        ttk.Button(prompt_buttons_frame, text="Tìm ý chính", command=lambda: self._generate_prompt("main_ideas")).pack(side="left", padx=5)
+        self.generated_prompt_text = scrolledtext.ScrolledText(processing_frame, height=5, wrap=tk.WORD)
+        self.generated_prompt_text.grid(row=2, column=0, columnspan=5, sticky="ew", pady=(10, 5))
+        prompt_action_frame = ttk.Frame(processing_frame)
+        prompt_action_frame.grid(row=3, column=0, columnspan=5, pady=(5,0), sticky="ew")
+        ttk.Button(prompt_action_frame, text="Sao chép Prompt", command=self._copy_prompt, style="Accent.TButton").pack(side="left")
+        ttk.Button(prompt_action_frame, text="Lưu Nội dung đã xử lý...", command=self._save_processed_content).pack(side="left", padx=10)
         
         self.status_label = ttk.Label(self, text="Sẵn sàng.")
         self.status_label.grid(row=4, column=0, sticky="w", pady=(10, 0))
@@ -242,6 +247,7 @@ class UtilitiesTab(ttk.Frame):
                 hashtags = self.db_manager.get_hashtags_for_subtitle(sub_id)
                 sub_type = "Tự động" if sub['is_auto_generated'] else "Có sẵn"
                 timestamp_str = sub['download_timestamp']
+                processed_status = "✓" if (sub['summary_content'] or sub['translated_content'] or sub['rewritten_content'] or sub['main_ideas_content']) else ""
                 try:
                     dt_object = datetime.datetime.strptime(timestamp_str.split('.')[0], '%Y-%m-%d %H:%M:%S')
                     formatted_time = dt_object.strftime('%d-%m-%Y %H:%M')
@@ -256,7 +262,9 @@ class UtilitiesTab(ttk.Frame):
                         self.hashtag_color_map[primary_hashtag] = tag_name
                         self.color_index += 1
                     row_tag = self.hashtag_color_map[primary_hashtag]
-                self.sub_library_tree.insert("", "end", values=(sub_id, sub['video_title'], sub['language'], sub_type, " ".join(hashtags), formatted_time), tags=(row_tag,) if row_tag else ())
+                self.sub_library_tree.insert("", "end", values=(
+                    sub_id, processed_status, sub['video_title'], " ".join(hashtags), sub['language'], sub_type, formatted_time
+                ), tags=(row_tag,) if row_tag else ())
             except (IndexError, KeyError) as e:
                 self.main_app.log_message(f"[ERROR] Lỗi khi đọc dữ liệu phụ đề từ CSDL: {e}")
 
@@ -293,7 +301,7 @@ class UtilitiesTab(ttk.Frame):
         selected_item = self.sub_library_tree.focus()
         if not selected_item: return
         item_values = self.sub_library_tree.item(selected_item, "values")
-        subtitle_id = item_values[0]; video_title = item_values[1]
+        subtitle_id = item_values[0]; video_title = item_values[2]
         if messagebox.askyesno("Xác nhận Xóa", f"Bạn có chắc chắn muốn xóa vĩnh viễn phụ đề cho video:\n\n'{video_title}'\n\nThao tác này không thể hoàn tác.", parent=self):
             if self.db_manager.delete_subtitle(subtitle_id):
                 self.status_label.config(text="Đã xóa phụ đề thành công.")
@@ -354,3 +362,40 @@ class UtilitiesTab(ttk.Frame):
                 messagebox.showerror("Lỗi", "Không thể truy cập clipboard. Vui lòng đảm bảo thư viện 'pyperclip' đã được cài đặt.", parent=self)
         else:
             self.status_label.config(text="Không có prompt nào để sao chép.")
+            
+    def _save_processed_content(self):
+        selected_item = self.sub_library_tree.focus()
+        if not selected_item:
+            messagebox.showwarning("Chưa chọn phụ đề", "Vui lòng chọn một phụ đề từ thư viện trước khi lưu.", parent=self)
+            return
+        processed_text = self.generated_prompt_text.get("1.0", tk.END).strip()
+        if not processed_text:
+            messagebox.showwarning("Nội dung trống", "Không có nội dung đã xử lý để lưu.", parent=self)
+            return
+        dialog = ProcessedContentDialog(self, title="Lưu Nội dung đã xử lý")
+        if dialog.result:
+            content_type_map = {
+                "Tóm tắt": "summary_content", "Bản dịch": "translated_content",
+                "Bản viết lại": "rewritten_content", "Ý chính": "main_ideas_content"
+            }
+            column_to_update = content_type_map.get(dialog.result)
+            if column_to_update:
+                subtitle_id = self.sub_library_tree.item(selected_item, "values")[0]
+                if self.db_manager.update_processed_content(subtitle_id, column_to_update, processed_text):
+                    self.status_label.config(text=f"Đã lưu thành công vào mục '{dialog.result}'.")
+                    self.load_subtitle_library()
+                else:
+                    messagebox.showerror("Lỗi CSDL", "Không thể lưu nội dung đã xử lý.", parent=self)
+
+class ProcessedContentDialog(simpledialog.Dialog):
+    def body(self, master):
+        self.title("Lưu vào đâu?")
+        ttk.Label(master, text="Chọn loại nội dung bạn muốn lưu:").pack(pady=10)
+        self.var = tk.StringVar(value=None)
+        options = ["Tóm tắt", "Bản dịch", "Bản viết lại", "Ý chính"]
+        for option in options:
+            ttk.Radiobutton(master, text=option, variable=self.var, value=option).pack(anchor="w", padx=20)
+        return None
+
+    def apply(self):
+        self.result = self.var.get() if self.var.get() else None

@@ -1,7 +1,7 @@
 # file-path: src/gemini_tts_app/database.py
-# version: 4.3
-# last-updated: 2025-07-21
-# description: Bổ sung hàm get_project_names để hỗ trợ logic đồng bộ thông minh.
+# version: 5.0
+# last-updated: 2025-08-22
+# description: Nâng cấp CSDL, thêm các cột để lưu nội dung phụ đề đã xử lý.
 
 import sqlite3
 import os
@@ -34,15 +34,32 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
+                
+                # Di trú #1: Thêm cột source_group vào bảng projects
                 cursor.execute("PRAGMA table_info(projects)")
-                columns = [info['name'] for info in cursor.fetchall()]
+                columns = [column['name'] for column in cursor.fetchall()]
                 if 'source_group' not in columns:
                     cursor.execute("ALTER TABLE projects ADD COLUMN source_group TEXT")
-                if 'status' not in columns:
-                    cursor.execute("ALTER TABLE projects ADD COLUMN status TEXT DEFAULT 'Chưa làm'")
-                conn.commit()
+                    conn.commit()
+                    print("Migration applied: Added 'source_group' to projects table.")
+
+                # Di trú #2: Thêm các cột nội dung đã xử lý vào bảng downloaded_subtitles
+                cursor.execute("PRAGMA table_info(downloaded_subtitles)")
+                sub_columns = [column['name'] for column in cursor.fetchall()]
+                columns_to_add = {
+                    'summary_content': 'TEXT',
+                    'translated_content': 'TEXT',
+                    'rewritten_content': 'TEXT',
+                    'main_ideas_content': 'TEXT'
+                }
+                for col, col_type in columns_to_add.items():
+                    if col not in sub_columns:
+                        cursor.execute(f"ALTER TABLE downloaded_subtitles ADD COLUMN {col} {col_type}")
+                        conn.commit()
+                        print(f"Migration applied: Added '{col}' to downloaded_subtitles table.")
+
         except sqlite3.Error as e:
-            print(f"Lỗi trong quá trình di chuyển CSDL: {e}")
+            print(f"Lỗi trong quá trình di trú CSDL: {e}")
 
     def create_tables(self):
         try:
@@ -388,7 +405,23 @@ class DatabaseManager:
             print(f"Lỗi khi lấy chi tiết phụ đề {subtitle_id}: {e}")
             return None
         
-    # Thêm hàm này vào cuối lớp DatabaseManager
+    def update_processed_content(self, subtitle_id, content_type, content):
+        """Cập nhật nội dung đã xử lý cho một phụ đề."""
+        allowed_columns = ['summary_content', 'translated_content', 'rewritten_content', 'main_ideas_content']
+        if content_type not in allowed_columns:
+            print(f"Lỗi: Cột '{content_type}' không hợp lệ.")
+            return False
+            
+        sql = f"UPDATE downloaded_subtitles SET {content_type} = ? WHERE id = ?"
+        try:
+            with self.get_connection() as conn:
+                conn.cursor().execute(sql, (content, subtitle_id))
+                conn.commit()
+            return True
+        except sqlite3.Error as e:
+            print(f"Lỗi khi cập nhật nội dung đã xử lý cho phụ đề {subtitle_id}: {e}")
+            return False
+    
     def delete_subtitle(self, subtitle_id):
         """Xóa một phụ đề khỏi CSDL dựa trên ID của nó."""
         sql = "DELETE FROM downloaded_subtitles WHERE id = ?"
